@@ -1,0 +1,21 @@
+<header class="site-header">
+  <nav class="nav-container">
+    <a href="{{ '/' | relative_url }}" class="site-logo">
+      <span class="logo-text">NexHam</span>
+    </a>
+    <div class="nav-links">
+      <a href="{{ '/' | relative_url }}#services">Services</a>
+      <a href="{{ '/blog' | relative_url }}">Blog</a>
+      <a href="{{ '/' | relative_url }}#contact">Contact</a>
+    </div>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+</header>
+<script>
+  document.querySelector('.nav-toggle').addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.toggle('open');
+    this.classList.toggle('open');
+  });
+</script>

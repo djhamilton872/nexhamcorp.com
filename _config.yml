@@ -1,0 +1,41 @@
+title: NexHam LLC
+description: Software + AI Consulting
+url: https://nexhamcorp.com
+baseurl: ""
+
+# Build
+markdown: kramdown
+permalink: /blog/:title/
+future: false
+
+# Plugins
+plugins:
+  - jekyll-sitemap
+  - jekyll-feed
+  - jekyll-seo-tag
+
+# Blog
+show_excerpts: true
+excerpt_separator: "<!--more-->"
+
+# Collections
+collections:
+  services:
+    output: false
+
+# Defaults
+defaults:
+  - scope:
+      path: "_posts"
+      type: "posts"
+    values:
+      layout: post
+
+# Exclude
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - LICENSE
+  - node_modules
+  - vendor
