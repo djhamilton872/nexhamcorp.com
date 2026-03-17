@@ -1,6 +1,7 @@
 ---
 layout: default
-title: false
+title: "Software + AI Consulting | NexHam LLC"
+description: "NexHam builds production software and deploys AI-powered teams for businesses. Custom SaaS development, multi-agent AI deployment, and DevOps infrastructure in Kansas City."
 ---
 
 <section class="hero">

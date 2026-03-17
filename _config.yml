@@ -1,7 +1,33 @@
 title: NexHam LLC
-description: Software + AI Consulting
+description: "NexHam builds production software and deploys AI-powered teams for businesses. Custom SaaS, multi-agent AI deployment, and infrastructure — built by 25 years of enterprise IT leadership."
 url: https://nexhamcorp.com
 baseurl: ""
+
+# SEO / Social
+tagline: "Software that works. AI that delivers."
+author:
+  name: Darren Hamilton
+  url: https://nexhamcorp.com
+twitter:
+  card: summary_large_image
+social:
+  name: NexHam LLC
+  links:
+    - https://nexhamcorp.com
+logo: /assets/images/nexham-og.png
+
+# Open Graph defaults
+defaults:
+  - scope:
+      path: ""
+    values:
+      image: /assets/images/nexham-og.png
+  - scope:
+      path: "_posts"
+      type: "posts"
+    values:
+      layout: post
+      image: /assets/images/nexham-og.png
 
 # Build
 markdown: kramdown
@@ -22,14 +48,6 @@ excerpt_separator: "<!--more-->"
 collections:
   services:
     output: false
-
-# Defaults
-defaults:
-  - scope:
-      path: "_posts"
-      type: "posts"
-    values:
-      layout: post
 
 # Exclude
 exclude:
