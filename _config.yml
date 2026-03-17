@@ -16,6 +16,11 @@ social:
     - https://nexhamcorp.com
 logo: /assets/images/nexham-og.png
 
+# Publisher (for structured data)
+publisher:
+  type: Organization
+  name: NexHam LLC
+
 # Open Graph defaults
 defaults:
   - scope:
