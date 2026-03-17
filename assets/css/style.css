@@ -393,6 +393,80 @@ section {
   }
 }
 
+/* ---- Latest Thinking / Blog Cards ---- */
+.latest-thinking {
+  background: var(--charcoal-light);
+}
+
+.blog-cards {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.blog-card {
+  display: block;
+  background: var(--charcoal);
+  border: 1px solid var(--charcoal-mid);
+  border-radius: 10px;
+  padding: 2rem;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+  text-decoration: none;
+  position: relative;
+}
+
+.blog-card:hover {
+  border-color: var(--copper-dark);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+.blog-card time {
+  font-size: 0.8rem;
+  color: var(--copper);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.blog-card h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--white);
+  margin: 0.6rem 0 0.75rem;
+  line-height: 1.35;
+}
+
+.blog-card p {
+  font-size: 0.9rem;
+  color: var(--slate);
+  line-height: 1.55;
+  margin-bottom: 1.25rem;
+}
+
+.blog-card .read-link {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--copper);
+  transition: color 0.2s ease;
+}
+
+.blog-card:hover .read-link {
+  color: var(--copper-light);
+}
+
+.blog-more {
+  text-align: center;
+  margin-top: 2.5rem;
+}
+
+/* Single blog card: center it, cap width */
+.blog-cards:has(.blog-card:only-child) {
+  max-width: 600px;
+}
+
 /* ---- Footer ---- */
 .site-footer {
   border-top: 1px solid var(--charcoal-mid);

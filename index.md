@@ -68,6 +68,30 @@ title: false
   </div>
 </section>
 
+<section class="latest-thinking" id="blog">
+  <div class="container">
+    <div class="section-header">
+      <h2>Latest Thinking</h2>
+      <p>Lessons from building and running AI teams in production.</p>
+    </div>
+    <div class="blog-cards">
+      {% for post in site.posts limit:3 %}
+      <a href="{{ post.url | relative_url }}" class="blog-card">
+        <time>{{ post.date | date: "%B %d, %Y" }}</time>
+        <h3>{{ post.title }}</h3>
+        <p>{{ post.description }}</p>
+        <span class="read-link">Read this &rarr;</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% if site.posts.size > 3 %}
+    <div class="blog-more">
+      <a href="{{ '/blog' | relative_url }}" class="btn btn-outline">See All Posts</a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
 <section class="about" id="about">
   <div class="container">
     <div class="section-header">
