@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexHam — Team Claude AI Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    color: #e0e0e0;
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 40px;
+    border-bottom: 1px solid #1e1e1e;
+    background: #0a0a0a;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-mark {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #C8956C, #a06840);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 16px; color: #fff;
+  }
+  .logo-text { font-size: 18px; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
+  .logo-sub { font-size: 12px; color: #666; margin-top: 1px; }
+  .header-tag {
+    font-size: 11px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase;
+    color: #C8956C; border: 1px solid #3a2a1e; padding: 5px 12px; border-radius: 20px;
+  }
+
+  .diagram-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px 20px;
+  }
+
+  .conn-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .diagram-grid {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .darren-row {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  .darren-node {
+    background: linear-gradient(135deg, #1e1410, #2a1e14);
+    border: 1.5px solid #C8956C;
+    border-radius: 14px;
+    padding: 18px 40px;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(200,149,108,0.15), 0 4px 20px rgba(0,0,0,0.4);
+    min-width: 260px;
+    position: relative;
+  }
+  .darren-node::after {
+    content: '';
+    position: absolute;
+    inset: -1px; border-radius: 14px;
+    background: linear-gradient(135deg, rgba(200,149,108,0.3), transparent);
+    z-index: -1;
+  }
+  .darren-label { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #C8956C; margin-bottom: 4px; }
+  .darren-name  { font-size: 20px; font-weight: 700; color: #fff; }
+  .darren-role  { font-size: 12px; color: #888; margin-top: 3px; }
+
+  .session-card {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 14px;
+    padding: 20px;
+    transition: all 0.25s ease;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+  .session-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 14px 14px 0 0;
+  }
+  .session-card.co-c::before  { background: linear-gradient(90deg, #C8956C, #e0aa85); }
+  .session-card.dev-c::before { background: linear-gradient(90deg, #4a9eff, #6bb5ff); }
+  .session-card.ops-c::before { background: linear-gradient(90deg, #4ade80, #86efac); }
+  .session-card.cc::before    { background: linear-gradient(90deg, #a78bfa, #c4b5fd); }
+  .session-card.ma::before    { background: linear-gradient(90deg, #22d3ee, #67e8f9); }
+
+  .session-card:hover { border-color: #333; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+  .session-card.co-c:hover  { border-color: #3a2a1e; box-shadow: 0 8px 30px rgba(200,149,108,0.1); }
+  .session-card.dev-c:hover { border-color: #1a2a3e; box-shadow: 0 8px 30px rgba(74,158,255,0.1); }
+  .session-card.ops-c:hover { border-color: #1a3a2a; box-shadow: 0 8px 30px rgba(74,222,128,0.1); }
+  .session-card.cc:hover    { border-color: #2a1a3e; box-shadow: 0 8px 30px rgba(167,139,250,0.1); }
+  .session-card.ma:hover    { border-color: #0e3040; box-shadow: 0 8px 30px rgba(34,211,238,0.1); }
+
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .card-icon {
+    width: 34px; height: 34px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .co-c  .card-icon { background: rgba(200,149,108,0.15); }
+  .dev-c .card-icon { background: rgba(74,158,255,0.15); }
+  .ops-c .card-icon { background: rgba(74,222,128,0.15); }
+  .cc    .card-icon { background: rgba(167,139,250,0.15); }
+  .ma    .card-icon { background: rgba(34,211,238,0.15); }
+
+  .card-title    { font-size: 15px; font-weight: 600; }
+  .card-subtitle { font-size: 11px; color: #555; margin-top: 1px; }
+  .co-c  .card-title { color: #e0aa85; }
+  .dev-c .card-title { color: #6bb5ff; }
+  .ops-c .card-title { color: #86efac; }
+  .cc    .card-title { color: #c4b5fd; }
+  .ma    .card-title { color: #67e8f9; }
+
+  .card-desc { font-size: 12px; color: #777; line-height: 1.5; margin-bottom: 14px; }
+
+  .tool-badges { display: flex; flex-wrap: wrap; gap: 5px; }
+  .badge { font-size: 10px; font-weight: 500; padding: 3px 8px; border-radius: 20px; border: 1px solid; }
+  .co-c  .badge { color: #C8956C; border-color: #3a2a1e; background: rgba(200,149,108,0.08); }
+  .dev-c .badge { color: #4a9eff; border-color: #1a2a4a; background: rgba(74,158,255,0.08); }
+  .ops-c .badge { color: #4ade80; border-color: #1a3a2a; background: rgba(74,222,128,0.08); }
+  .cc    .badge { color: #a78bfa; border-color: #2a1a4a; background: rgba(167,139,250,0.08); }
+  .ma    .badge { color: #22d3ee; border-color: #0e3040; background: rgba(34,211,238,0.08); }
+
+  /* ── Managed Agent cloud wrapper ── */
+  .ma-cloud-row {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    margin: -4px 0 4px;
+  }
+  .ma-cloud-wrap {
+    width: 100%; max-width: 800px;
+    border: 1px dashed #163040;
+    border-radius: 16px;
+    padding: 16px 20px 20px;
+    background: rgba(6, 22, 32, 0.6);
+  }
+  .ma-cloud-header {
+    text-align: center;
+    font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+    text-transform: uppercase; color: #22d3ee;
+    margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    opacity: 0.8;
+  }
+  .ma-cloud-header::before { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, #163040); }
+  .ma-cloud-header::after  { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, #163040, transparent); }
+  .ma-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .bus-row {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    margin: 5px 0;
+  }
+  .messaging-bus {
+    background: linear-gradient(135deg, #0f1520, #111825);
+    border: 1px solid #1e2a3a;
+    border-radius: 14px;
+    padding: 16px 30px;
+    width: 100%; max-width: 700px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(74,158,255,0.05);
+  }
+  .bus-label { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #4a9eff; margin-bottom: 4px; }
+  .bus-title { font-size: 15px; font-weight: 600; color: #fff; }
+  .bus-desc  { font-size: 11px; color: #555; margin-top: 3px; }
+  .bus-flow  { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
+  .bus-node  { font-size: 10px; color: #4a9eff; background: rgba(74,158,255,0.1); border: 1px solid rgba(74,158,255,0.2); padding: 3px 10px; border-radius: 20px; }
+  .bus-arrow { color: #333; font-size: 12px; }
+
+  .memory-row {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 5px;
+  }
+  .memory-card {
+    background: #0d0d0d;
+    border: 1px solid #1a1a1a;
+    border-radius: 12px;
+    padding: 16px 22px;
+    flex: 1; min-width: 200px; max-width: 280px;
+    text-align: center;
+  }
+  .memory-card.kb  { border-color: #2a1e10; }
+  .memory-card.hs  { border-color: #1a1030; }
+  .memory-card.ext { border-color: #101a10; }
+  .mem-icon  { font-size: 22px; margin-bottom: 6px; }
+  .mem-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .memory-card.kb  .mem-title { color: #C8956C; }
+  .memory-card.hs  .mem-title { color: #a78bfa; }
+  .memory-card.ext .mem-title { color: #4ade80; }
+  .mem-desc { font-size: 11px; color: #555; line-height: 1.4; }
+
+  @keyframes flowPulse {
+    0%   { stroke-dashoffset: 300; opacity: 0.8; }
+    100% { stroke-dashoffset: 0;   opacity: 0.2; }
+  }
+  .flow-line {
+    fill: none;
+    stroke-width: 1.5;
+    stroke-dasharray: 6 4;
+    animation: flowPulse 2s linear infinite;
+  }
+  .flow-line.copper      { stroke: #C8956C; }
+  .flow-line.blue        { stroke: #4a9eff; }
+  .flow-line.green       { stroke: #4ade80; }
+  .flow-line.purple      { stroke: #a78bfa; }
+  .flow-line.teal        { stroke: #22d3ee; animation-duration: 2.5s; }
+  .flow-line.copper-slow { stroke: #C8956C; animation-duration: 3s; }
+  .flow-line.blue-slow   { stroke: #4a9eff; animation-duration: 3.5s; }
+  .flow-line.green-slow  { stroke: #4ade80; animation-duration: 2.8s; }
+  .flow-line.purple-slow { stroke: #a78bfa; animation-duration: 3.2s; }
+  .flow-line.teal-slow   { stroke: #22d3ee; animation-duration: 3.8s; }
+
+  .legend {
+    display: flex; align-items: center; justify-content: center;
+    gap: 24px; flex-wrap: wrap;
+    padding: 20px 40px;
+    border-top: 1px solid #1a1a1a;
+    margin-top: 10px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #555; }
+  .legend-dot  { width: 8px; height: 8px; border-radius: 50%; }
+
+  .footer {
+    text-align: center;
+    padding: 16px;
+    font-size: 11px; color: #333;
+    border-top: 1px solid #111;
+  }
+  .footer span { color: #C8956C; }
+
+  .section-label {
+    grid-column: 1 / -1;
+    font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+    text-transform: uppercase; color: #333;
+    text-align: center; padding: 4px 0 0;
+  }
+
+  .tabs {
+    display: flex; justify-content: center; gap: 8px;
+    padding: 24px 40px 0;
+  }
+  .tab-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 500;
+    padding: 9px 22px; border-radius: 8px; border: 1px solid #222;
+    background: transparent; color: #555; cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .tab-btn:hover { color: #999; border-color: #333; }
+  .tab-btn.active {
+    background: linear-gradient(135deg, #1e1410, #2a1e14);
+    border-color: #C8956C; color: #C8956C;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Case Study ── */
+  .cs-wrap { max-width: 1100px; margin: 0 auto; padding: 36px 24px 24px; }
+  .cs-intro { text-align: center; margin-bottom: 36px; }
+  .cs-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #C8956C; margin-bottom: 8px; }
+  .cs-title { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .cs-sub   { font-size: 14px; color: #555; max-width: 560px; margin: 0 auto; line-height: 1.6; }
+
+  .cs-direction {
+    background: linear-gradient(135deg, #1e1410, #2a1e14);
+    border: 1px solid #3a2a1e; border-radius: 12px;
+    padding: 18px 28px; text-align: center; margin-bottom: 32px;
+  }
+  .cs-direction-label { font-size: 11px; color: #C8956C; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
+  .cs-direction-text  { font-size: 16px; color: #fff; font-weight: 500; }
+  .cs-direction-sub   { font-size: 12px; color: #666; margin-top: 4px; }
+  .cs-arrow-down      { text-align: center; font-size: 20px; color: #2a2a2a; margin: -16px 0 12px; }
+
+  .cs-columns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .cs-col-card { border-radius: 12px; padding: 20px; border: 1px solid; position: relative; }
+  .cs-col-card.co-c  { background: #0f0c09; border-color: #2a1e10; }
+  .cs-col-card.dev-c { background: #090f18; border-color: #101e30; }
+  .cs-col-card.ops-c { background: #090f0c; border-color: #10201a; }
+  .cs-col-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 12px 12px 0 0; }
+  .cs-col-card.co-c::before  { background: linear-gradient(90deg, #C8956C, #e0aa85); }
+  .cs-col-card.dev-c::before { background: linear-gradient(90deg, #4a9eff, #6bb5ff); }
+  .cs-col-card.ops-c::before { background: linear-gradient(90deg, #4ade80, #86efac); }
+  .cs-col-session { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
+  .co-c  .cs-col-session { color: #C8956C; }
+  .dev-c .cs-col-session { color: #4a9eff; }
+  .ops-c .cs-col-session { color: #4ade80; }
+  .cs-task { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; font-size: 12px; color: #888; line-height: 1.5; }
+  .cs-task-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .co-c  .cs-task-dot { background: #C8956C; }
+  .dev-c .cs-task-dot { background: #4a9eff; }
+  .ops-c .cs-task-dot { background: #4ade80; }
+  .cs-task-text strong { font-weight: 600; }
+  .co-c  .cs-task-text strong { color: #e0aa85; }
+  .dev-c .cs-task-text strong { color: #6bb5ff; }
+  .ops-c .cs-task-text strong { color: #86efac; }
+
+  .cs-ma-row { margin-bottom: 24px; }
+  .cs-ma-box { border: 1px dashed #163040; border-radius: 12px; padding: 20px 24px; background: rgba(6, 22, 32, 0.5); }
+  .cs-ma-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #22d3ee; margin-bottom: 14px; }
+  .cs-ma-agents { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .cs-ma-agent { background: #070f14; border: 1px solid #0e2a38; border-radius: 10px; padding: 14px 16px; }
+  .cs-ma-agent-name { font-size: 12px; font-weight: 600; color: #67e8f9; margin-bottom: 5px; }
+  .cs-ma-agent-desc { font-size: 11px; color: #666; line-height: 1.5; }
+
+  .cs-bus-section { background: linear-gradient(135deg, #0a1020, #0c1428); border: 1px solid #1a2a3a; border-radius: 12px; padding: 20px 28px; margin-bottom: 28px; }
+  .cs-bus-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #4a9eff; margin-bottom: 14px; }
+  .cs-message { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 12px; }
+  .cs-msg-from { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; letter-spacing: 0.5px; }
+  .cs-msg-from.co-c  { background: rgba(200,149,108,0.15); color: #C8956C; border: 1px solid #3a2a1e; }
+  .cs-msg-from.dev-c { background: rgba(74,158,255,0.15);  color: #4a9eff; border: 1px solid #1a2a4a; }
+  .cs-msg-from.ops-c { background: rgba(74,222,128,0.15);  color: #4ade80; border: 1px solid #1a3a2a; }
+  .cs-msg-from.ma    { background: rgba(34,211,238,0.15);  color: #22d3ee; border: 1px solid #0e3040; }
+  .cs-msg-arrow { color: #333; font-size: 11px; flex-shrink: 0; }
+  .cs-msg-to { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
+  .cs-msg-to.co-c  { background: rgba(200,149,108,0.08); color: #C8956C; border: 1px solid #2a1e10; }
+  .cs-msg-to.dev-c { background: rgba(74,158,255,0.08);  color: #4a9eff; border: 1px solid #101e30; }
+  .cs-msg-to.ops-c { background: rgba(74,222,128,0.08);  color: #4ade80; border: 1px solid #10201a; }
+  .cs-msg-body { color: #666; font-size: 12px; font-style: italic; }
+
+  .cs-outcome { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 12px; }
+  .cs-outcome-card { background: #0d0d0d; border: 1px solid #1a1a1a; border-radius: 10px; padding: 16px; text-align: center; }
+  .cs-outcome-card.ma-card { border-color: #0e2a38; background: #070f14; }
+  .cs-outcome-icon  { font-size: 22px; margin-bottom: 6px; }
+  .cs-outcome-title { font-size: 12px; font-weight: 600; color: #C8956C; margin-bottom: 3px; }
+  .cs-outcome-card.ma-card .cs-outcome-title { color: #22d3ee; }
+  .cs-outcome-desc  { font-size: 11px; color: #555; line-height: 1.4; }
+
+  .cs-cta { background: linear-gradient(135deg, #1a1410, #221a10); border: 1px solid #3a2a18; border-radius: 12px; padding: 20px 28px; text-align: center; margin-top: 8px; }
+  .cs-cta-title { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 5px; }
+  .cs-cta-body  { font-size: 12px; color: #777; line-height: 1.6; }
+  .cs-cta-url   { color: #C8956C; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-mark">N</div>
+    <div>
+      <div class="logo-text">NexHam</div>
+      <div class="logo-sub">Software &amp; AI Consulting</div>
+    </div>
+  </div>
+  <div class="header-tag">Team Claude Architecture</div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('architecture', this)">🗺 Architecture</button>
+  <button class="tab-btn" onclick="switchTab('casestudy', this)">⚡ In Action: TrackMe+</button>
+</div>
+
+<!-- TAB: Architecture -->
+<div class="tab-panel active" id="tab-architecture">
+<div class="diagram-wrap" id="diagramWrap">
+  <svg class="conn-svg" id="connSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div class="diagram-grid" id="diagramGrid">
+
+    <!-- Darren -->
+    <div class="darren-row">
+      <div class="darren-node" id="nodeDarren">
+        <div class="darren-label">Human Director</div>
+        <div class="darren-name">Darren Hamilton</div>
+        <div class="darren-role">Strategy · Priorities · Final Authority</div>
+      </div>
+    </div>
+
+    <div class="section-label">AI Session Team — Runs in Parallel</div>
+
+    <!-- Sessions -->
+    <div class="session-card co-c" id="nodeCoC">
+      <div class="card-header">
+        <div class="card-icon">🧠</div>
+        <div>
+          <div class="card-title">Co C</div>
+          <div class="card-subtitle">Chief of Staff · M2 Mac Mini</div>
+        </div>
+      </div>
+      <div class="card-desc">Marketing execution, strategy, email monitoring, research, client projects, knowledge base. Directs Managed Agent Workers.</div>
+      <div class="tool-badges">
+        <span class="badge">Email</span>
+        <span class="badge">Social Media</span>
+        <span class="badge">CRM</span>
+        <span class="badge">Canva</span>
+        <span class="badge">Scheduling</span>
+        <span class="badge">Agent Director</span>
+      </div>
+    </div>
+
+    <div class="session-card dev-c" id="nodeDevC">
+      <div class="card-header">
+        <div class="card-icon">⚙️</div>
+        <div>
+          <div class="card-title">Dev C</div>
+          <div class="card-subtitle">Product Engineering · M4 Mac Mini</div>
+        </div>
+      </div>
+      <div class="card-desc">Owns all product code and deployments. Builds features, fixes bugs, manages releases. Technical oversight.</div>
+      <div class="tool-badges">
+        <span class="badge">Git / GitHub</span>
+        <span class="badge">Docker</span>
+        <span class="badge">Database</span>
+        <span class="badge">API Testing</span>
+        <span class="badge">CI/CD</span>
+      </div>
+    </div>
+
+    <div class="session-card ops-c" id="nodeOpsC">
+      <div class="card-header">
+        <div class="card-icon">🛠️</div>
+        <div>
+          <div class="card-title">Ops C</div>
+          <div class="card-subtitle">Infrastructure &amp; QA · M1 MacBook Pro</div>
+        </div>
+      </div>
+      <div class="card-desc">Container operations, system monitoring, infrastructure changes, QA test execution. Keeps everything running.</div>
+      <div class="tool-badges">
+        <span class="badge">Docker</span>
+        <span class="badge">Monitoring</span>
+        <span class="badge">Playwright</span>
+        <span class="badge">Shell</span>
+        <span class="badge">Networking</span>
+      </div>
+    </div>
+
+    <!-- Managed Agents label -->
+    <div class="section-label" style="color: #22d3ee; opacity: 0.6; padding-top: 8px;">Managed Agent Workers — Spawned by Co C</div>
+
+    <!-- Managed Agents cloud row -->
+    <div class="ma-cloud-row">
+      <div class="ma-cloud-wrap">
+        <div class="ma-cloud-header">☁️ &nbsp; Anthropic API Cloud &nbsp; · &nbsp; Managed Sessions &nbsp; · &nbsp; Runs Autonomously</div>
+        <div class="ma-cards">
+
+          <div class="session-card ma" id="nodeAgentSocial">
+            <div class="card-header">
+              <div class="card-icon">📲</div>
+              <div>
+                <div class="card-title">Social Posting Agent</div>
+                <div class="card-subtitle">Daily 5:55am CT · cron + Co C</div>
+              </div>
+            </div>
+            <div class="card-desc">Audits the next 48h of scheduled posts across all platforms. Catches character overruns, broken images, and brand violations. Reports findings to Co C.</div>
+            <div class="tool-badges">
+              <span class="badge">Zernio API</span>
+              <span class="badge">Quality Gates</span>
+              <span class="badge">Auto-Fix</span>
+              <span class="badge">Reports to Co C</span>
+            </div>
+          </div>
+
+          <div class="session-card ma" id="nodeAgentBlog">
+            <div class="card-header">
+              <div class="card-icon">✍️</div>
+              <div>
+                <div class="card-title">Blog Publishing Agent</div>
+                <div class="card-subtitle">Weekly Sun 10pm CT · on-demand</div>
+              </div>
+            </div>
+            <div class="card-desc">Validates staged blog drafts against 11 quality gates — frontmatter, SEO, brand voice, link health. Approved posts are pushed to GitHub automatically.</div>
+            <div class="tool-badges">
+              <span class="badge">11 Quality Gates</span>
+              <span class="badge">Jekyll / GitHub</span>
+              <span class="badge">Auto-Publishes</span>
+              <span class="badge">Reports to Co C</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Messaging Bus -->
+    <div class="bus-row" id="busRow">
+      <div class="messaging-bus" id="nodeBus">
+        <div class="bus-label">Coordination Layer</div>
+        <div class="bus-title">Inter-Claude Messaging System</div>
+        <div class="bus-desc">Async message passing · Priority routing · Cross-session task handoff</div>
+        <div class="bus-flow">
+          <span class="bus-node">normal</span>
+          <span class="bus-arrow">→</span>
+          <span class="bus-node">high</span>
+          <span class="bus-arrow">→</span>
+          <span class="bus-node">urgent → 📱 push alert</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Task Execution &amp; Shared Memory</div>
+
+    <!-- CC -->
+    <div class="session-card cc" id="nodeCC" style="grid-column: 1;">
+      <div class="card-header">
+        <div class="card-icon">⚡</div>
+        <div>
+          <div class="card-title">CC</div>
+          <div class="card-subtitle">Task Runner · Spawned on Demand</div>
+        </div>
+      </div>
+      <div class="card-desc">Stateless executor. Spawned by Dev C or Ops C for discrete tasks — runs scripts, tests, migrations, builds.</div>
+      <div class="tool-badges">
+        <span class="badge">No persistent state</span>
+        <span class="badge">Spawned per task</span>
+      </div>
+    </div>
+
+    <!-- Memory -->
+    <div style="grid-column: 2 / -1;">
+      <div class="memory-row">
+        <div class="memory-card kb" id="nodeKB">
+          <div class="mem-icon">📚</div>
+          <div class="mem-title">Knowledge Base</div>
+          <div class="mem-desc">Persistent docs, decisions, playbooks, SOPs. Searchable. Every session reads and writes.</div>
+        </div>
+        <div class="memory-card hs" id="nodeHS">
+          <div class="mem-icon">🧬</div>
+          <div class="mem-title">Episodic Memory</div>
+          <div class="mem-desc">Semantic long-term memory. Stores cross-session learnings, client context, key decisions.</div>
+        </div>
+        <div class="memory-card ext" id="nodeExt">
+          <div class="mem-icon">🔌</div>
+          <div class="mem-title">External Integrations</div>
+          <div class="mem-desc">Stripe, Cloudflare, Home Assistant, social platforms, DNS, analytics, e-commerce.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div><!-- /tab-architecture -->
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#C8956C"></div> Co C data flow</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#4a9eff"></div> Dev C data flow</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div> Ops C data flow</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div> CC task flow</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#22d3ee"></div> Managed Agent flow</div>
+  <div class="legend-item" style="color:#444; font-size:11px">— — —&nbsp; async message</div>
+</div>
+
+<!-- TAB: Case Study -->
+<div class="tab-panel" id="tab-casestudy">
+  <div class="cs-wrap">
+
+    <div class="cs-intro">
+      <div class="cs-eyebrow">Real-World Case Study</div>
+      <div class="cs-title">Building &amp; Launching TrackMe+</div>
+      <div class="cs-sub">One person. Three AI sessions running in parallel — plus autonomous Managed Agents working around the clock.</div>
+    </div>
+
+    <div class="cs-direction">
+      <div class="cs-direction-label">👤 Darren sets direction</div>
+      <div class="cs-direction-text">"Build a free health tracking app — medications, peptides, labs, blood pressure, weight. Ship it."</div>
+      <div class="cs-direction-sub">One directive. Three sessions execute in parallel. Managed Agents handle ongoing operations. No waiting.</div>
+    </div>
+    <div class="cs-arrow-down">↓</div>
+
+    <div class="cs-columns">
+
+      <div class="cs-col-card co-c">
+        <div class="cs-col-session">🧠 Co C — Marketing &amp; Strategy</div>
+        <div class="cs-task"><div class="cs-task-dot"></div><div class="cs-task-text"><strong>Market research</strong> — competitive landscape, positioning, who needs this app and why</div></div>
+        <div class="cs-task"><div class="cs-task-dot"></div><div class="cs-task-text"><strong>Brand &amp; messaging</strong> — landing page copy, taglines, feature descriptions written before launch</div></div>
+        <div class="cs-task"><div class="cs-task-dot"></div><div class="cs-task-text"><strong>Social pipeline built</strong> — 4 weeks of content scheduled, platform accounts configured</div></div>
+        <div class="cs-task"><div class="cs-task-dot"></div><div class="cs-task-text"><strong>Blog &amp; SEO</strong> — 28-post runway written targeting health tracking keywords</div></div>
+        <div class="cs-task"><div class="cs-task-dot"></div><div class="cs-task-text"><strong>Directs Managed Agents</strong> — deploys, monitors, and acts on reports from autonomous agent workers</div></div>
+      </div>
+
+      <div class="cs-col-card dev-c">
+        <div class="cs-col-session">⚙️ Dev C — Product Engineering</div>
+        <div class="cs-task"><div class="cs-task-dot"></div><div class="cs-task-text"><strong>Architecture designed</strong> — Node.js API, PostgreSQL, React frontend, Docker containers</div></div>
+        <div class="cs-task"><div class="cs-task-dot"></div><div class="cs-task-text"><strong>Core features built</strong> — medication tracking, dose calculator, lab results, BP log, weight tracking</div></div>
+        <div class="cs-task"><div class="cs-task-dot"></div><div class="cs-task-text"><strong>Database schema</strong> — designed and migrated. Zero data loss across all releases</div></div>
+        <div class="cs-task"><div class="cs-task-dot"></div><div class="cs-task-text"><strong>Continuous releases</strong> — DEV to QA to PROD pipeline with versioned deployments</div></div>
+        <div class="cs-task"><div class="cs-task-dot"></div><div class="cs-task-text"><strong>Spawns CC</strong> on demand for test runs, migrations, and build scripts</div></div>
+      </div>
+
+      <div class="cs-col-card ops-c">
+        <div class="cs-col-session">🛠️ Ops C — Infrastructure &amp; QA</div>
+        <div class="cs-task"><div class="cs-task-dot"></div><div class="cs-task-text"><strong>Docker stack built</strong> — DEV and PROD containers, reverse proxy, SSL, automated restarts</div></div>
+        <div class="cs-task"><div class="cs-task-dot"></div><div class="cs-task-text"><strong>Monitoring live</strong> — UptimeRobot alerts, container health checks, error log watchers</div></div>
+        <div class="cs-task"><div class="cs-task-dot"></div><div class="cs-task-text"><strong>QA test suite</strong> — 200+ Playwright tests covering all critical user flows</div></div>
+        <div class="cs-task"><div class="cs-task-dot"></div><div class="cs-task-text"><strong>Release gating</strong> — no PROD deploy without QA green light from Ops C</div></div>
+        <div class="cs-task"><div class="cs-task-dot"></div><div class="cs-task-text"><strong>Backup strategy</strong> — NAS snapshots, HyperBackup, disaster recovery runbooks written</div></div>
+      </div>
+
+    </div>
+
+    <!-- Managed Agents case study -->
+    <div class="cs-ma-row">
+      <div class="cs-ma-box">
+        <div class="cs-ma-label">☁️ Managed Agent Workers — Running 24/7 on Anthropic Cloud</div>
+        <div class="cs-ma-agents">
+          <div class="cs-ma-agent">
+            <div class="cs-ma-agent-name">📲 Social Posting Agent — Daily 5:55am CT</div>
+            <div class="cs-ma-agent-desc">Every morning, an autonomous cloud agent reviews the next 48 hours of scheduled posts across all platforms. It catches truncated copy, image failures, and brand violations — and fixes or flags them before publish time. Co C acts on the report.</div>
+          </div>
+          <div class="cs-ma-agent">
+            <div class="cs-ma-agent-name">✍️ Blog Publishing Agent — Weekly + On-Demand</div>
+            <div class="cs-ma-agent-desc">Staged blog drafts are automatically validated against 11 quality gates — word count, SEO, frontmatter, brand voice, broken links. Posts that pass are committed to GitHub and go live with zero human involvement. Failures are reported to Co C with specific fix guidance.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messaging examples -->
+    <div class="cs-bus-section">
+      <div class="cs-bus-label">📨 Inter-Claude Messaging — How They Coordinated</div>
+      <div class="cs-message">
+        <span class="cs-msg-from dev-c">Dev C</span>
+        <span class="cs-msg-arrow">→</span>
+        <span class="cs-msg-to ops-c">Ops C</span>
+        <span class="cs-msg-body">"v3.2.0 ready for QA. DB migration included — run on DEV first. Full diff in HANDOFF.md."</span>
+      </div>
+      <div class="cs-message">
+        <span class="cs-msg-from ops-c">Ops C</span>
+        <span class="cs-msg-arrow">→</span>
+        <span class="cs-msg-to dev-c">Dev C</span>
+        <span class="cs-msg-body">"QA cleared. 3 minor UI issues logged. PROD deploy green — your call."</span>
+      </div>
+      <div class="cs-message">
+        <span class="cs-msg-from ma">Social Agent</span>
+        <span class="cs-msg-arrow">→</span>
+        <span class="cs-msg-to co-c">Co C</span>
+        <span class="cs-msg-body">"5 posts reviewed. 1 flagged: Twitter copy truncated mid-sentence. LinkedIn version clean. Recommend splitting before 7:30am."</span>
+      </div>
+      <div class="cs-message">
+        <span class="cs-msg-from co-c">Co C</span>
+        <span class="cs-msg-arrow">→</span>
+        <span class="cs-msg-to dev-c">Dev C</span>
+        <span class="cs-msg-body">"User reported bug: lab results not saving on iOS Safari. Flagging HIGH priority."</span>
+      </div>
+    </div>
+
+    <!-- Outcomes -->
+    <div class="cs-outcome">
+      <div class="cs-outcome-card">
+        <div class="cs-outcome-icon">🚀</div>
+        <div class="cs-outcome-title">Live Product</div>
+        <div class="cs-outcome-desc">Full-featured health tracking app in production, monitored 24/7</div>
+      </div>
+      <div class="cs-outcome-card">
+        <div class="cs-outcome-icon">📣</div>
+        <div class="cs-outcome-title">Marketing Pipeline</div>
+        <div class="cs-outcome-desc">Weeks of social content, blog posts, and campaigns running autonomously</div>
+      </div>
+      <div class="cs-outcome-card">
+        <div class="cs-outcome-icon">🛡️</div>
+        <div class="cs-outcome-title">Ops Coverage</div>
+        <div class="cs-outcome-desc">Monitoring, backups, QA gates, and release process — all documented and running</div>
+      </div>
+      <div class="cs-outcome-card ma-card">
+        <div class="cs-outcome-icon">🤖</div>
+        <div class="cs-outcome-title">Agents Running</div>
+        <div class="cs-outcome-desc">Managed Agents audit posts and publish blog content — zero human involvement needed</div>
+      </div>
+      <div class="cs-outcome-card">
+        <div class="cs-outcome-icon">👤</div>
+        <div class="cs-outcome-title">One Human</div>
+        <div class="cs-outcome-desc">Darren directed strategy. The AI team executed — in parallel, around the clock</div>
+      </div>
+    </div>
+
+    <div class="cs-cta">
+      <div class="cs-cta-title">This is what NexHam builds for your business.</div>
+      <div class="cs-cta-body">A custom Team Claude system — configured for your tools, your workflows, your team. You direct. The AI executes.<br><span class="cs-cta-url">nexhamcorp.com</span></div>
+    </div>
+
+  </div>
+</div><!-- /tab-casestudy -->
+
+<div class="footer">
+  Built &amp; operated by <span>NexHam</span> · nexhamcorp.com · AI-powered lean operations
+</div>
+
+<script>
+function getCenter(el, wrap) {
+  const er = el.getBoundingClientRect();
+  const wr = wrap.getBoundingClientRect();
+  return {
+    x: er.left - wr.left + er.width / 2,
+    y: er.top  - wr.top  + er.height / 2,
+    top:    er.top  - wr.top,
+    bottom: er.bottom - wr.top,
+    left:   er.left - wr.left,
+    right:  er.right - wr.left,
+  };
+}
+
+function makeFlowPath(svg, x1, y1, x2, y2, cls, delay) {
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  const mx = (x1 + x2) / 2;
+  const d  = `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
+  path.setAttribute('d', d);
+  path.setAttribute('class', 'flow-line ' + cls);
+  path.style.animationDelay = delay + 's';
+  svg.appendChild(path);
+}
+
+function drawConnections() {
+  const wrap = document.getElementById('diagramWrap');
+  const svg  = document.getElementById('connSvg');
+  svg.innerHTML = '';
+  const wr = wrap.getBoundingClientRect();
+  svg.setAttribute('viewBox', `0 0 ${wr.width} ${wr.height}`);
+  svg.style.width  = wr.width  + 'px';
+  svg.style.height = wr.height + 'px';
+
+  const darren      = getCenter(document.getElementById('nodeDarren'),     wrap);
+  const coC         = getCenter(document.getElementById('nodeCoC'),         wrap);
+  const devC        = getCenter(document.getElementById('nodeDevC'),        wrap);
+  const opsC        = getCenter(document.getElementById('nodeOpsC'),        wrap);
+  const agentSocial = getCenter(document.getElementById('nodeAgentSocial'), wrap);
+  const agentBlog   = getCenter(document.getElementById('nodeAgentBlog'),   wrap);
+  const bus         = getCenter(document.getElementById('nodeBus'),         wrap);
+  const cc          = getCenter(document.getElementById('nodeCC'),          wrap);
+  const kb          = getCenter(document.getElementById('nodeKB'),          wrap);
+  const hs          = getCenter(document.getElementById('nodeHS'),          wrap);
+  const ext         = getCenter(document.getElementById('nodeExt'),         wrap);
+
+  // Darren → sessions
+  makeFlowPath(svg, darren.x, darren.bottom, coC.x,  coC.top,  'copper', 0);
+  makeFlowPath(svg, darren.x, darren.bottom, devC.x, devC.top, 'blue',   0.5);
+  makeFlowPath(svg, darren.x, darren.bottom, opsC.x, opsC.top, 'green',  1.0);
+
+  // Co C → Managed Agents (down)
+  makeFlowPath(svg, coC.x, coC.bottom, agentSocial.x, agentSocial.top, 'teal',      0.2);
+  makeFlowPath(svg, coC.x, coC.bottom, agentBlog.x,   agentBlog.top,   'teal-slow', 0.7);
+
+  // Sessions → Messaging Bus
+  makeFlowPath(svg, coC.x,  coC.bottom,  bus.x - 160, bus.top, 'copper-slow', 0.3);
+  makeFlowPath(svg, devC.x, devC.bottom, bus.x,       bus.top, 'blue-slow',   0.7);
+  makeFlowPath(svg, opsC.x, opsC.bottom, bus.x + 160, bus.top, 'green-slow',  1.1);
+
+  // Managed Agents → Bus (reporting back)
+  makeFlowPath(svg, agentSocial.x, agentSocial.bottom, bus.x - 60, bus.top, 'teal',      0.9);
+  makeFlowPath(svg, agentBlog.x,   agentBlog.bottom,   bus.x + 60, bus.top, 'teal-slow', 1.3);
+
+  // Bus → CC + Memory
+  makeFlowPath(svg, bus.x - 100, bus.bottom, cc.x,  cc.top,  'purple',      0.4);
+  makeFlowPath(svg, bus.x,       bus.bottom, kb.x,  kb.top,  'blue-slow',   0.6);
+  makeFlowPath(svg, bus.x + 60,  bus.bottom, hs.x,  hs.top,  'purple-slow', 0.9);
+  makeFlowPath(svg, bus.x + 80,  bus.bottom, ext.x, ext.top, 'green-slow',  1.2);
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'architecture') setTimeout(drawConnections, 100);
+}
+
+window.addEventListener('load',   () => setTimeout(drawConnections, 300));
+window.addEventListener('resize', () => setTimeout(drawConnections, 100));
+</script>
+</body>
+</html>
