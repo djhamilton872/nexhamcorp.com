@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 2, Session 1: CLAUDE.md Deep Dive</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #1a1a1a; color: #e0e0e0;
+    line-height: 1.6; padding: 20px; max-width: 900px; margin: 0 auto;
+  }
+  h1 { color: #C8956C; font-size: 28px; margin-bottom: 5px; }
+  h2 { color: #C8956C; font-size: 22px; margin: 30px 0 15px; }
+  h3 { color: #fff; font-size: 16px; margin: 16px 0 8px; }
+  .subtitle { color: #999; font-size: 14px; margin-bottom: 30px; }
+  .section { background: #242424; border-radius: 12px; padding: 24px; margin: 20px 0; }
+  .callout { background: #2a2318; border-left: 4px solid #C8956C; padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+  .callout strong { color: #C8956C; }
+  .warning { background: #2a1f1f; border-left: 4px solid #e74c3c; padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: #e74c3c; }
+  .insight { background: #1a2a20; border-left: 4px solid #4a9; padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+  .insight strong { color: #4a9; }
+  .analogy { background: #1a2020; border: 1px solid #2a4040; padding: 20px; border-radius: 10px; margin: 15px 0; }
+  .analogy-label { color: #5ba; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  code { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #C8956C; }
+  table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+  th { text-align: left; padding: 10px 12px; background: #2a2a2a; color: #C8956C; font-size: 14px; }
+  td { padding: 10px 12px; border-bottom: 1px solid #333; font-size: 14px; }
+  tr:hover td { background: #2a2a2a; }
+  p { margin: 10px 0; }
+
+  /* Phase badge */
+  .phase-badge {
+    display: inline-block; background: #2a2318; border: 1px solid #C8956C;
+    color: #C8956C; font-size: 12px; padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 15px; font-weight: bold; letter-spacing: 0.5px;
+  }
+
+  /* CLAUDE.md Anatomy Explorer */
+  .anatomy-container { margin: 20px 0; }
+  .md-block {
+    border-radius: 8px; padding: 12px 16px; margin: 4px 0;
+    cursor: pointer; transition: all 0.2s; border-left: 4px solid transparent;
+    font-family: 'Courier New', monospace; font-size: 13px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .md-block:hover { filter: brightness(1.2); }
+  .md-block.active { filter: brightness(1.3); border-left-color: #fff; }
+  .md-block-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .md-block-text { flex: 1; line-height: 1.5; }
+  .md-block-badge {
+    font-size: 10px; padding: 2px 7px; border-radius: 10px;
+    font-family: sans-serif; font-weight: bold; flex-shrink: 0;
+    align-self: center; letter-spacing: 0.5px;
+  }
+
+  /* color scheme per block type */
+  .block-identity   { background: #22201a; border-left-color: #C8956C; color: #ddd; }
+  .block-role       { background: #1a2020; border-left-color: #5ba; color: #ddd; }
+  .block-rules      { background: #201a1a; border-left-color: #e74; color: #ddd; }
+  .block-tools      { background: #1a1a25; border-left-color: #88f; color: #ddd; }
+  .block-shortcuts  { background: #1a2218; border-left-color: #4a9; color: #ddd; }
+  .block-lessons    { background: #201820; border-left-color: #d7a; color: #ddd; }
+  .block-imports    { background: #181c20; border-left-color: #7af; color: #ddd; }
+  .block-comment    { background: #1a1a1a; border-left-color: #444; color: #666; }
+
+  .badge-identity  { background: #3a3020; color: #C8956C; }
+  .badge-role      { background: #1a2828; color: #5ba; }
+  .badge-rules     { background: #281a1a; color: #e74; }
+  .badge-tools     { background: #1a1a30; color: #88f; }
+  .badge-shortcuts { background: #182518; color: #4a9; }
+  .badge-lessons   { background: #281828; color: #d7a; }
+  .badge-imports   { background: #181e28; color: #7af; }
+  .badge-comment   { background: #222; color: #666; }
+
+  .anatomy-explain {
+    background: #1a1a1a; border: 1px solid #333; border-radius: 10px;
+    padding: 20px; margin-top: 16px; min-height: 100px;
+    transition: all 0.3s;
+  }
+  .anatomy-explain .explain-title { font-size: 15px; font-weight: bold; margin-bottom: 8px; }
+  .anatomy-explain .explain-body { font-size: 14px; color: #bbb; line-height: 1.7; }
+  .anatomy-explain .explain-tip {
+    background: #2a2318; border-left: 3px solid #C8956C;
+    padding: 10px 14px; margin-top: 12px; border-radius: 0 6px 6px 0;
+    font-size: 13px; color: #C8956C;
+  }
+  .anatomy-hint { color: #555; font-size: 13px; font-style: italic; margin-top: 8px; text-align: center; }
+
+  /* Token Budget */
+  .budget-container { margin: 20px 0; }
+  .budget-controls { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+  .budget-row { display: flex; align-items: center; gap: 12px; }
+  .budget-label { width: 160px; font-size: 14px; flex-shrink: 0; }
+  .budget-slider { flex: 1; accent-color: #C8956C; }
+  .budget-val { width: 70px; text-align: right; font-family: monospace; font-size: 14px; color: #C8956C; }
+  .budget-viz {
+    background: #1a1a1a; border-radius: 10px; padding: 20px; margin: 15px 0;
+  }
+  .budget-bar-bg {
+    width: 100%; height: 36px; background: #2a2a2a; border-radius: 8px;
+    overflow: hidden; display: flex; margin: 10px 0;
+  }
+  .budget-seg {
+    height: 100%; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: bold; transition: width 0.5s ease;
+    overflow: hidden; white-space: nowrap; padding: 0 6px;
+  }
+  .seg-system { background: #5a3a1a; color: #ddd; }
+  .seg-claude  { background: #C8956C; color: #1a1a1a; }
+  .seg-convo   { background: #3a5a3a; color: #ddd; }
+  .seg-free    { background: #2a2a2a; color: #666; border: 1px dashed #444; }
+  .budget-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #999; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .budget-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 15px; }
+  .budget-stat { background: #2a2a2a; border-radius: 8px; padding: 14px; text-align: center; }
+  .budget-stat-val { font-size: 22px; font-weight: bold; font-family: monospace; }
+  .budget-stat-label { font-size: 11px; color: #666; margin-top: 4px; }
+  .budget-warning { display: none; }
+
+  /* Decision Tree */
+  .tree-container { margin: 20px 0; }
+  .tree-question {
+    background: #242424; border-radius: 10px; padding: 20px; margin: 12px 0;
+  }
+  .tree-q-text { font-size: 16px; margin-bottom: 14px; }
+  .tree-options { display: flex; flex-direction: column; gap: 8px; }
+  .tree-btn {
+    background: #2a2a2a; border: 1px solid #444; color: #ddd;
+    padding: 10px 16px; border-radius: 8px; cursor: pointer;
+    font-size: 14px; text-align: left; transition: all 0.2s;
+  }
+  .tree-btn:hover { background: #333; border-color: #C8956C; }
+  .tree-result {
+    background: #1a2a20; border: 1px solid #3a5a3a; border-radius: 10px;
+    padding: 20px; margin-top: 12px; display: none;
+  }
+  .tree-result.show { display: block; }
+  .tree-result-where { font-size: 20px; font-weight: bold; color: #4a9; margin-bottom: 8px; }
+  .tree-result-why { font-size: 14px; color: #bbb; line-height: 1.6; }
+  .tree-result-example { background: #1a1a1a; border-radius: 6px; padding: 10px 14px; margin-top: 10px; font-family: monospace; font-size: 13px; color: #C8956C; }
+  .tree-reset { background: none; border: 1px solid #555; color: #888; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-top: 12px; transition: all 0.2s; }
+  .tree-reset:hover { border-color: #C8956C; color: #C8956C; }
+
+  /* Lean vs Bloated */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+  @media (max-width: 650px) { .compare-grid { grid-template-columns: 1fr; } }
+  .compare-panel { background: #1a1a1a; border-radius: 10px; padding: 16px; border-top: 4px solid; }
+  .compare-bloated { border-color: #e74; }
+  .compare-lean    { border-color: #4a9; }
+  .compare-panel h4 { font-size: 14px; margin-bottom: 4px; }
+  .compare-bloated h4 { color: #e74; }
+  .compare-lean h4   { color: #4a9; }
+  .compare-tokens { font-size: 22px; font-weight: bold; font-family: monospace; margin: 4px 0 12px; }
+  .compare-bloated .compare-tokens { color: #e74; }
+  .compare-lean    .compare-tokens { color: #4a9; }
+  .compare-item { background: #2a2a2a; border-radius: 6px; padding: 10px 12px; margin: 6px 0; font-size: 13px; font-family: monospace; line-height: 1.5; }
+  .compare-item.problem { border-left: 3px solid #e74; }
+  .compare-item.good    { border-left: 3px solid #4a9; }
+  .compare-item .item-label { font-family: sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px; color: #888; text-transform: uppercase; }
+  .compare-item .item-text { color: #ddd; }
+  .compare-item .item-cost { font-family: sans-serif; font-size: 11px; color: #888; margin-top: 4px; }
+
+  /* Myth cards */
+  .myth-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+  @media (max-width: 600px) { .myth-grid { grid-template-columns: 1fr; } }
+  .myth-card { background: #2a2a2a; border-radius: 10px; padding: 16px; }
+  .myth-label { font-size: 11px; font-weight: bold; letter-spacing: 1px; margin-bottom: 8px; }
+  .myth-label.myth { color: #e74; }
+  .myth-label.truth { color: #4a9; }
+  .myth-text { font-size: 13px; line-height: 1.6; color: #bbb; }
+
+  /* @-import visual */
+  .import-diagram { margin: 20px 0; }
+  .import-file {
+    background: #242424; border-radius: 8px; padding: 14px 16px;
+    margin: 8px 0; display: flex; align-items: center; gap: 12px;
+    border-left: 4px solid #7af; font-family: monospace; font-size: 13px;
+  }
+  .import-file-main { border-left-color: #C8956C; }
+  .import-arrow { color: #7af; font-size: 18px; margin-left: 28px; }
+  .import-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-family: sans-serif; background: #1a1e28; color: #7af; }
+  .import-tag-main { background: #3a2a18; color: #C8956C; }
+
+  /* Next session */
+  .next-session {
+    background: #242424; border-radius: 12px; padding: 24px;
+    margin: 30px 0 0; border-top: 3px solid #C8956C;
+  }
+  .next-session h3 { color: #C8956C; margin-bottom: 10px; }
+  .phase-session { font-size: 12px; color: #666; margin-bottom: 4px; }
+  .prev-next { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .nav-btn {
+    background: #2a2a2a; border: 1px solid #444; color: #bbb;
+    padding: 10px 20px; border-radius: 8px; cursor: pointer;
+    font-size: 13px; text-decoration: none; display: inline-block;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { background: #333; border-color: #C8956C; color: #C8956C; }
+  .nav-btn.primary { background: #C8956C; color: #1a1a1a; border-color: #C8956C; font-weight: bold; }
+  .nav-btn.primary:hover { background: #d4a57c; }
+</style>
+</head>
+<body>
+
+<div class="phase-badge">PHASE 2 — THE CONFIGURATION LAYER</div>
+<h1>Phase 2, Session 1</h1>
+<h2 style="margin-top:4px; font-size:24px;">CLAUDE.md Deep Dive</h2>
+<p class="subtitle">Boot context. What loads automatically, where it lives, size tradeoffs, and how to design it well.</p>
+
+<!-- SECTION 1: What It Is -->
+<div class="section">
+  <h2>What CLAUDE.md Actually Is</h2>
+  <p>If you've used Claude in a project folder, you may have noticed a file called <code>CLAUDE.md</code> in your workspace. It looks like a normal Markdown file. But what it does is fundamentally different from any other file Claude can read.</p>
+  <p style="margin-top:12px;"><strong>CLAUDE.md is the only file Claude reads before you say a single word.</strong></p>
+  <p>Every other document — attached files, tool outputs, knowledge bases — gets loaded in response to something happening. CLAUDE.md loads automatically, every session, before the conversation begins. It's not retrieved. It's not searched. It's injected directly into Claude's context window as part of the boot sequence.</p>
+
+  <div class="analogy">
+    <div class="analogy-label">Analogy</div>
+    <strong style="color:#5ba;">CLAUDE.md is your employee handbook — except the employee reads the entire handbook before their first conversation of every single workday.</strong>
+    <p style="margin-top:8px; font-size:14px; color:#bbb;">Most companies hand an employee a handbook once and expect them to remember it. Claude gets the opposite deal: perfect recall, every time, but only of what's in that file. If something isn't written there, it doesn't exist at session start.</p>
+  </div>
+
+  <div class="callout">
+    <strong>The Phase 1 connection:</strong> In Phase 1 Session 2, you saw the boot sequence — system prompt → CLAUDE.md → conversation history → your message. CLAUDE.md sits right after the system prompt. That prime position in the context window means it gets maximum attention weight (Session 5). Location matters.
+  </div>
+</div>
+
+<!-- SECTION 2: Anatomy Explorer -->
+<div class="section">
+  <h2>Anatomy of a CLAUDE.md</h2>
+  <p>A well-designed CLAUDE.md has distinct sections that each serve a specific purpose. Click any block below to see what it does and why it belongs at boot time.</p>
+
+  <div class="anatomy-container">
+    <div class="md-block block-identity" onclick="showExplain('identity')">
+      <div class="md-block-icon">🏷️</div>
+      <div class="md-block-text">## IDENTITY<br><span style="color:#888;"># Who Claude is in this context. Role name, session type, what machine it runs on.</span></div>
+      <div class="md-block-badge badge-identity">IDENTITY</div>
+    </div>
+
+    <div class="md-block block-role" onclick="showExplain('role')">
+      <div class="md-block-icon">🎯</div>
+      <div class="md-block-text">## Primary Role<br><span style="color:#888;"># Core responsibilities. What this Claude instance actually does.</span></div>
+      <div class="md-block-badge badge-role">ROLE</div>
+    </div>
+
+    <div class="md-block block-tools" onclick="showExplain('tools')">
+      <div class="md-block-icon">🔧</div>
+      <div class="md-block-text">## Tools Connected<br><span style="color:#888;"># MCPs, integrations, what's available right now. Tool gotchas and quirks.</span></div>
+      <div class="md-block-badge badge-tools">TOOLS</div>
+    </div>
+
+    <div class="md-block block-shortcuts" onclick="showExplain('shortcuts')">
+      <div class="md-block-icon">⚡</div>
+      <div class="md-block-text">## Shorthand Commands<br><span style="color:#888;"># "check inbox" means X, "deploy" means Y. Custom vocabulary for this workspace.</span></div>
+      <div class="md-block-badge badge-shortcuts">SHORTCUTS</div>
+    </div>
+
+    <div class="md-block block-imports" onclick="showExplain('imports')">
+      <div class="md-block-icon">📎</div>
+      <div class="md-block-text">@.claude/rules/hard-rules.md<br>@.claude/rules/session-protocol.md<br><span style="color:#888;"># @-imports pull in modular rules files at load time.</span></div>
+      <div class="md-block-badge badge-imports">@-IMPORTS</div>
+    </div>
+
+    <div class="md-block block-lessons" onclick="showExplain('lessons')">
+      <div class="md-block-icon">📖</div>
+      <div class="md-block-text">## Lessons Learned (rolling, max 10)<br><span style="color:#888;"># Recent discoveries that need to be front-of-mind. Dated, capped.</span></div>
+      <div class="md-block-badge badge-lessons">MEMORY</div>
+    </div>
+
+    <div class="md-block block-comment" onclick="showExplain('missing')">
+      <div class="md-block-icon">❌</div>
+      <div class="md-block-text"><span style="color:#555;">[not here] → product specs, feature lists, pricing history, vendor contacts, background reading</span></div>
+      <div class="md-block-badge badge-comment">NOT HERE</div>
+    </div>
+  </div>
+
+  <p class="anatomy-hint">↑ Click each block to learn more</p>
+
+  <div class="anatomy-explain" id="anatomy-explain">
+    <div class="explain-title" id="explain-title" style="color:#999;">Select a block above</div>
+    <div class="explain-body" id="explain-body" style="color:#555;">Click any colored block to see what it does, why it belongs in CLAUDE.md (or why it doesn't), and how to write it well.</div>
+  </div>
+</div>
+
+<!-- SECTION 3: Token Budget -->
+<div class="section">
+  <h2>The Token Cost Reality</h2>
+  <p>Every token in your CLAUDE.md is a token <em>not available</em> for your conversation, tool outputs, or Claude's response. CLAUDE.md doesn't just sit there — it fills the context window. The tradeoff is real.</p>
+  <p style="margin-top:10px;">The calculator below shows how your configuration choices affect your available context. Drag the sliders to see the impact.</p>
+
+  <div class="budget-container">
+    <div class="budget-controls">
+      <div class="budget-row">
+        <div class="budget-label">Model context</div>
+        <select id="model-select" style="flex:1; background:#2a2a2a; border:1px solid #444; color:#ddd; padding:8px; border-radius:6px; font-size:14px;" onchange="updateBudget()">
+          <option value="200000">Claude Sonnet — 200k tokens</option>
+          <option value="1000000">Claude — 1M tokens (Cowork)</option>
+          <option value="8096">Claude Haiku — 8k (basic API)</option>
+        </select>
+      </div>
+      <div class="budget-row">
+        <div class="budget-label">System prompt</div>
+        <input type="range" class="budget-slider" id="sys-slider" min="500" max="8000" value="2000" oninput="updateBudget()">
+        <div class="budget-val" id="sys-val">2,000</div>
+      </div>
+      <div class="budget-row">
+        <div class="budget-label">CLAUDE.md size</div>
+        <input type="range" class="budget-slider" id="claude-slider" min="200" max="15000" value="3000" oninput="updateBudget()">
+        <div class="budget-val" id="claude-val">3,000</div>
+      </div>
+      <div class="budget-row">
+        <div class="budget-label">Conversation history</div>
+        <input type="range" class="budget-slider" id="convo-slider" min="0" max="50000" value="5000" oninput="updateBudget()">
+        <div class="budget-val" id="convo-val">5,000</div>
+      </div>
+    </div>
+
+    <div class="budget-viz">
+      <div style="font-size:13px; color:#666; margin-bottom:6px;">Context window allocation</div>
+      <div class="budget-bar-bg">
+        <div class="budget-seg seg-system" id="seg-system" style="width:10%;">System</div>
+        <div class="budget-seg seg-claude" id="seg-claude" style="width:15%;">CLAUDE.md</div>
+        <div class="budget-seg seg-convo" id="seg-convo" style="width:25%;">History</div>
+        <div class="budget-seg seg-free" id="seg-free" style="width:50%;">Available</div>
+      </div>
+      <div class="budget-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#5a3a1a;"></div>System prompt</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#C8956C;"></div>CLAUDE.md</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3a5a3a;"></div>Conversation history</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2a2a2a; border:1px dashed #444;"></div>Available for response + tools</div>
+      </div>
+    </div>
+
+    <div class="budget-summary">
+      <div class="budget-stat">
+        <div class="budget-stat-val" id="stat-used" style="color:#e74;">0</div>
+        <div class="budget-stat-label">Tokens used by config</div>
+      </div>
+      <div class="budget-stat">
+        <div class="budget-stat-val" id="stat-free" style="color:#4a9;">0</div>
+        <div class="budget-stat-label">Tokens free for work</div>
+      </div>
+      <div class="budget-stat">
+        <div class="budget-stat-val" id="stat-pct" style="color:#C8956C;">0%</div>
+        <div class="budget-stat-label">Config overhead</div>
+      </div>
+    </div>
+
+    <div class="warning budget-warning" id="budget-warning">
+      <strong>⚠️ Warning:</strong> Your configuration is consuming over 50% of the context window. Conversations will get expensive fast, and compaction will kick in sooner. Trim your CLAUDE.md.
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>The counterintuitive truth:</strong> More isn't better. A bloated CLAUDE.md with vague filler instructions costs tokens AND reduces attention quality. Every line competes with every other line. A tight, specific 2,000-token CLAUDE.md beats a sprawling 8,000-token one almost every time.
+  </div>
+</div>
+
+<!-- SECTION 4: @-imports -->
+<div class="section">
+  <h2>The @-Import System</h2>
+  <p>CLAUDE.md doesn't have to contain everything directly. Claude supports <code>@-imports</code> — special lines that pull in other Markdown files at load time, as if you'd copy-pasted them inline.</p>
+
+  <div class="import-diagram">
+    <div class="import-file import-file-main">
+      <span style="color:#C8956C;">📄</span>
+      <span style="flex:1;"><strong>CLAUDE.md</strong> &nbsp;←&nbsp; the root file</span>
+      <span class="import-tag import-tag-main">boots automatically</span>
+    </div>
+    <div class="import-arrow">↳</div>
+    <div class="import-file">
+      <span style="color:#7af;">📎</span>
+      <span style="flex:1;"><strong>@.claude/rules/hard-rules.md</strong></span>
+      <span class="import-tag">injected inline</span>
+    </div>
+    <div class="import-arrow">↳</div>
+    <div class="import-file">
+      <span style="color:#7af;">📎</span>
+      <span style="flex:1;"><strong>@.claude/rules/session-protocol.md</strong></span>
+      <span class="import-tag">injected inline</span>
+    </div>
+    <div class="import-arrow">↳</div>
+    <div class="import-file">
+      <span style="color:#7af;">📎</span>
+      <span style="flex:1;"><strong>@.claude/rules/marketing-rules.md</strong></span>
+      <span class="import-tag">injected inline</span>
+    </div>
+  </div>
+
+  <h3>Why bother with imports instead of one big file?</h3>
+  <table>
+    <thead><tr><th>Benefit</th><th>What it means in practice</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Editability</strong></td><td>You can update a rules file without touching CLAUDE.md. Less risk of accidentally breaking something important.</td></tr>
+      <tr><td><strong>Readability</strong></td><td>CLAUDE.md stays as a clear table of contents. Rules stay in their own dedicated files.</td></tr>
+      <tr><td><strong>Selective loading</strong></td><td>Different Claude deployments can share some rules files but not others. Marketing rules live in their own file and only load for the right session.</td></tr>
+      <tr><td><strong>Version control</strong></td><td>Git diff on <code>hard-rules.md</code> shows exactly what changed. Easier to audit.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="insight">
+    <strong>Important:</strong> @-imports are loaded at the same priority as CLAUDE.md itself. They're not "secondary" — they're all part of the same boot context. The token cost applies to everything imported, so the budget math applies to your full import tree, not just the root file.
+  </div>
+</div>
+
+<!-- SECTION 5: Decision Tree -->
+<div class="section">
+  <h2>Where Does This Information Belong?</h2>
+  <p>The most common CLAUDE.md mistake is putting everything in it. Use this decision tree to figure out the right place for any piece of information.</p>
+
+  <div class="tree-container" id="tree-container">
+    <div class="tree-question" id="tree-q0">
+      <div class="tree-q-text">What kind of information is this?</div>
+      <div class="tree-options">
+        <button class="tree-btn" onclick="treeStep('rules')">It's a rule or constraint — something Claude must always do or never do</button>
+        <button class="tree-btn" onclick="treeStep('context')">It's context — background about the company, product, client, or situation</button>
+        <button class="tree-btn" onclick="treeStep('procedure')">It's a procedure — step-by-step instructions for a recurring task</button>
+        <button class="tree-btn" onclick="treeStep('knowledge')">It's reference material — specs, pricing, contacts, documentation</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tree-result" id="tree-result">
+    <div class="tree-result-where" id="result-where"></div>
+    <div class="tree-result-why" id="result-why"></div>
+    <div class="tree-result-example" id="result-example"></div>
+    <button class="tree-reset" onclick="treeReset()">↩ Start over</button>
+  </div>
+</div>
+
+<!-- SECTION 6: Lean vs Bloated -->
+<div class="section">
+  <h2>Lean vs. Bloated — Side by Side</h2>
+  <p>Both examples below are trying to accomplish the same thing: tell Claude how to handle client emails. One does it in ~40 tokens. One does it in ~200 tokens, and it's <em>worse</em>.</p>
+
+  <div class="compare-grid">
+    <div class="compare-panel compare-bloated">
+      <h4>❌ Bloated (~200 tokens)</h4>
+      <div class="compare-tokens">~200 tok</div>
+
+      <div class="compare-item problem">
+        <div class="item-label">Vague opener</div>
+        <div class="item-text">When clients send emails, you should always be professional and try your best to handle their questions and concerns in a helpful and timely manner. Client satisfaction is very important.</div>
+        <div class="item-cost">~45 tokens — says nothing actionable</div>
+      </div>
+      <div class="compare-item problem">
+        <div class="item-label">Undefined threshold</div>
+        <div class="item-text">If the email seems urgent, try to prioritize it. If something is above your capabilities, escalate appropriately to the right person.</div>
+        <div class="item-cost">~35 tokens — "seems urgent" and "appropriately" are guesses</div>
+      </div>
+      <div class="compare-item problem">
+        <div class="item-label">Redundant reminder</div>
+        <div class="item-text">Remember to be careful with client data and always make sure you're following our privacy guidelines. Never share anything you shouldn't.</div>
+        <div class="item-cost">~38 tokens — "shouldn't" is undefined</div>
+      </div>
+      <div class="compare-item problem">
+        <div class="item-label">Aspirational noise</div>
+        <div class="item-text">Always aim to leave clients with a positive impression of our company and our commitment to excellent service.</div>
+        <div class="item-cost">~28 tokens — zero behavioral change</div>
+      </div>
+    </div>
+
+    <div class="compare-panel compare-lean">
+      <h4>✅ Lean (~42 tokens)</h4>
+      <div class="compare-tokens">~42 tok</div>
+
+      <div class="compare-item good">
+        <div class="item-label">Clear trigger</div>
+        <div class="item-text">Client emails: reply within 4 hours during business hours (9am–6pm CT). After hours = next morning.</div>
+        <div class="item-cost">~22 tokens — completely unambiguous</div>
+      </div>
+      <div class="compare-item good">
+        <div class="item-label">Specific escalation</div>
+        <div class="item-text">Escalate to Sarah if: billing dispute, churn risk, or legal mention. Tag #urgent in Slack.</div>
+        <div class="item-cost">~20 tokens — three defined triggers, one action</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="warning">
+    <strong>The vague instruction problem:</strong> "Be professional" and "handle urgency appropriately" don't change Claude's behavior — they just burn tokens. Claude's default behavior is already professional. You only need to write what differs from the default, and you need to write it specifically.
+  </div>
+</div>
+
+<!-- SECTION 7: Common Mistakes -->
+<div class="section">
+  <h2>The Five Most Common CLAUDE.md Mistakes</h2>
+
+  <div class="myth-grid">
+    <div class="myth-card">
+      <div class="myth-label myth">MISTAKE 1</div>
+      <div class="myth-text"><strong style="color:#ddd;">Dumping everything in.</strong><br>CLAUDE.md is boot context, not a filing cabinet. If Claude doesn't need to know it in the first 30 seconds of every session, it doesn't belong here. Put reference material in a knowledge base instead.</div>
+    </div>
+    <div class="myth-card">
+      <div class="myth-label myth">MISTAKE 2</div>
+      <div class="myth-text"><strong style="color:#ddd;">Writing aspirations instead of rules.</strong><br>"Always prioritize client satisfaction" is not a rule — Claude already does that. "Never respond to a complaint without first reading the client's contract" is a rule. Aspiration doesn't change behavior. Specificity does.</div>
+    </div>
+    <div class="myth-card">
+      <div class="myth-label myth">MISTAKE 3</div>
+      <div class="myth-text"><strong style="color:#ddd;">Burying critical rules at the bottom.</strong><br>From Phase 1 Session 5: attention weight is highest at the top and bottom of a document, lowest in the middle. Your most important behavioral rules belong in the first 20% of your CLAUDE.md.</div>
+    </div>
+    <div class="myth-card">
+      <div class="myth-label myth">MISTAKE 4</div>
+      <div class="myth-text"><strong style="color:#ddd;">No structure, just a wall of text.</strong><br>Markdown headers create semantic anchors. Without them, your CLAUDE.md is a blob that Claude processes as a continuous flow. Section headers tell Claude "this next part is about X" — that context matters.</div>
+    </div>
+    <div class="myth-card">
+      <div class="myth-label myth">MISTAKE 5</div>
+      <div class="myth-text"><strong style="color:#ddd;">Setting it and forgetting it.</strong><br>CLAUDE.md should evolve. When something goes wrong that you had to correct, add the lesson to Lessons Learned (capped at 10). When a tool changes behavior, update the gotchas section. Stale CLAUDE.md = stale behavior.</div>
+    </div>
+    <div class="myth-card">
+      <div class="myth-label truth">DESIGN PRINCIPLE</div>
+      <div class="myth-text"><strong style="color:#ddd;">Write what differs from defaults.</strong><br>You don't need to tell Claude to be helpful, accurate, or professional — those are defaults. Every line in CLAUDE.md should answer: "What would Claude get wrong without this?" If the answer is "nothing," cut the line.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 8: The Test -->
+<div class="section">
+  <h2>The Binary Test for Every Line</h2>
+  <p>Before adding any line to CLAUDE.md, run it through this test:</p>
+
+  <div style="background:#1a1a1a; border-radius:10px; padding:24px; margin:15px 0; text-align:center;">
+    <div style="font-size:18px; color:#ddd; margin-bottom:16px;">"What would Claude have to <strong style="color:#C8956C;">guess</strong> to follow this instruction?"</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:600px; margin:0 auto; text-align:left;">
+      <div style="background:#282820; border:1px solid #3a3a28; border-radius:8px; padding:14px;">
+        <div style="color:#888; font-size:11px; margin-bottom:6px;">BEFORE (requires guessing)</div>
+        <div style="font-family:monospace; font-size:13px; color:#bbb;">"Respond quickly to urgent things"</div>
+        <div style="margin-top:8px; font-size:12px; color:#666;">Guesses needed: what counts as urgent? what does quickly mean? what things?</div>
+      </div>
+      <div style="background:#182818; border:1px solid #283828; border-radius:8px; padding:14px;">
+        <div style="color:#4a9; font-size:11px; margin-bottom:6px;">AFTER (no guessing needed)</div>
+        <div style="font-family:monospace; font-size:13px; color:#bbb;">"Respond within 1 hour to any email with 'urgent' or 'down' in the subject"</div>
+        <div style="margin-top:8px; font-size:12px; color:#666;">Zero ambiguity. Claude knows exactly when and how to act.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>Every guess is a gap.</strong> If Claude has to guess to follow your instruction, you haven't written the instruction — you've written a hope. Hopes don't reliably survive context changes, different conversations, or long sessions where attention dilutes.
+  </div>
+</div>
+
+<!-- Next Session -->
+<div class="next-session">
+  <div class="phase-session">PHASE 2 — SESSION 2</div>
+  <h3>Next: Rules Files</h3>
+  <p>You've seen how @-imports work. Next session digs into the rules files themselves — hard rules vs. soft guidelines, how to structure them for maximum Claude attention, and when modular beats monolithic. Includes: the session protocol pattern, marketing rules anatomy, and designing rules files that actually change behavior.</p>
+  <p style="margin-top:5px; color:#999; font-size:13px;">After Session 2, you'll understand why some rules hold and others quietly get ignored — and how to write ones that stick.</p>
+  <div class="prev-next">
+    <a href="phase1-session6-temperature.html" class="nav-btn">← Phase 1, Session 6</a>
+    <a href="phase2-session2-rules-files.html" class="nav-btn primary">Phase 2, Session 2 →</a>
+    <a href="index.html" class="nav-btn">All Lessons</a>
+  </div>
+</div>
+
+<script>
+// ---- Anatomy Explorer ----
+const explanations = {
+  identity: {
+    title: "🏷️ Identity Section",
+    color: "#C8956C",
+    body: "Tells Claude who it is in this specific deployment. Not its general capabilities — its role right now. Which session is this? What machine? What name should it use when referring to itself? Without this, Claude will still work, but it won't have a strong sense of its distinct context versus any other deployment. This is particularly important in multi-session setups where you have several Claude instances running.",
+    tip: "Keep this tight. 2-4 lines. Role name, machine, and any critical session identity. Everything else belongs elsewhere."
+  },
+  role: {
+    title: "🎯 Role / Responsibilities",
+    color: "#5ba",
+    body: "The answer to 'what is this Claude actually for?' Not capabilities — responsibilities. What does it own end-to-end? What decisions can it make autonomously? What is explicitly NOT its domain? This section is where you define the scope. Without it, Claude will try to help with anything and everything, which creates overlap and confusion in multi-session setups.",
+    tip: "List 3-7 bullet responsibilities. Be concrete. 'Manage social media' is vague. 'Write, schedule, and publish social posts for [brand] across [platforms]' is specific."
+  },
+  tools: {
+    title: "🔧 Tools Connected",
+    color: "#88f",
+    body: "Lists what MCPs and integrations are available, plus any gotchas about how they behave in this particular setup. This matters because Claude can't always infer what tools are connected — and even when it can, knowing the gotchas prevents errors. If a tool expects files at a non-standard path, or has a quirk specific to your environment, document it here.",
+    tip: "Include gotchas, not just tool names. 'Gmail MCP connected' tells Claude less than 'Gmail MCP: use for djhamilton@gmail.com only, NOT the team account.'"
+  },
+  shortcuts: {
+    title: "⚡ Shorthand Commands",
+    color: "#4a9",
+    body: "Custom vocabulary for your workspace. When you type 'check inbox,' it means run a specific set of email checks across five accounts in a specific order. When you type 'deploy,' it triggers a specific workflow. Without this section, Claude treats your shorthand as plain English — which might get close, but will miss your actual intent. This is your custom language dictionary.",
+    tip: "Format: shorthand → exact meaning. Include edge cases. 'check inbox = all five email accounts via nexham-email MCP' is better than 'check inbox = check email.'"
+  },
+  imports: {
+    title: "📎 @-Import Lines",
+    color: "#7af",
+    body: "Lines starting with @ followed by a file path tell Claude to load that file inline at boot time. It's as if you copy-pasted the entire contents of that file right where the @ line appears. This is how you build modular configuration — CLAUDE.md stays clean and high-level, while detailed rules live in dedicated files. The imported content gets the same attention weight as the rest of CLAUDE.md.",
+    tip: "Put @-imports near the bottom of CLAUDE.md. The imported content will be large — you want your key identity and role sections to have already been processed before the detailed rules flood in."
+  },
+  lessons: {
+    title: "📖 Lessons Learned",
+    color: "#d7a",
+    body: "A capped, rolling list of recent discoveries that need to be front-of-mind at the start of every session. This is your escape hatch for 'Claude keeps making the same mistake.' The cap (usually 5-10 items) forces you to curate — if something gets added, something old gets pruned. This prevents the Lessons section from becoming a graveyard of ancient gotchas nobody acts on anymore.",
+    tip: "Date every entry. Cap at 10. When a lesson gets fixed at a deeper level (a rule file, a workflow change), remove it. Stale lessons dilute attention on fresh ones."
+  },
+  missing: {
+    title: "❌ What Doesn't Belong Here",
+    color: "#e74",
+    body: "Product specs, pricing history, vendor contact lists, feature documentation, background reading, meeting notes — none of this belongs in CLAUDE.md. These are reference materials that should live in a knowledge base (retrieved on demand) or a supplement file (loaded when working on a specific product). Putting them in CLAUDE.md means they consume context window on every session, even sessions where they're completely irrelevant.",
+    tip: "Test for boot necessity: 'Does Claude need this in the first 30 seconds of every session, regardless of what we're doing?' If no, it belongs in a knowledge base or supplement, not here."
+  }
+};
+
+function showExplain(key) {
+  const e = explanations[key];
+  const box = document.getElementById('anatomy-explain');
+  const title = document.getElementById('explain-title');
+  const body = document.getElementById('explain-body');
+
+  // clear active
+  document.querySelectorAll('.md-block').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+
+  title.textContent = e.title;
+  title.style.color = e.color;
+  body.style.color = '#bbb';
+
+  // rebuild body with tip
+  const existing = box.querySelector('.explain-tip');
+  if (existing) existing.remove();
+  body.textContent = e.body;
+
+  const tip = document.createElement('div');
+  tip.className = 'explain-tip';
+  tip.innerHTML = '<strong>Practical tip:</strong> ' + e.tip;
+  box.appendChild(tip);
+}
+
+// ---- Token Budget ----
+function updateBudget() {
+  const totalCtx = parseInt(document.getElementById('model-select').value);
+  const sysVal = parseInt(document.getElementById('sys-slider').value);
+  const claudeVal = parseInt(document.getElementById('claude-slider').value);
+  const convoVal = parseInt(document.getElementById('convo-slider').value);
+
+  document.getElementById('sys-val').textContent = sysVal.toLocaleString();
+  document.getElementById('claude-val').textContent = claudeVal.toLocaleString();
+  document.getElementById('convo-val').textContent = convoVal.toLocaleString();
+
+  const total = sysVal + claudeVal + convoVal;
+  const free = Math.max(0, totalCtx - total);
+  const pct = Math.round((total / totalCtx) * 100);
+
+  const sysPct   = Math.min(100, (sysVal / totalCtx) * 100);
+  const claudePct = Math.min(100, (claudeVal / totalCtx) * 100);
+  const convoPct = Math.min(100, (convoVal / totalCtx) * 100);
+  const freePct  = Math.max(0, 100 - sysPct - claudePct - convoPct);
+
+  document.getElementById('seg-system').style.width  = sysPct + '%';
+  document.getElementById('seg-claude').style.width  = claudePct + '%';
+  document.getElementById('seg-convo').style.width   = convoPct + '%';
+  document.getElementById('seg-free').style.width    = freePct + '%';
+
+  // Hide small segments text
+  document.getElementById('seg-system').textContent  = sysPct > 4 ? 'System' : '';
+  document.getElementById('seg-claude').textContent  = claudePct > 4 ? 'CLAUDE.md' : '';
+  document.getElementById('seg-convo').textContent   = convoPct > 4 ? 'History' : '';
+  document.getElementById('seg-free').textContent    = freePct > 4 ? 'Available' : '';
+
+  document.getElementById('stat-used').textContent = total.toLocaleString();
+  document.getElementById('stat-free').textContent = free.toLocaleString();
+  document.getElementById('stat-pct').textContent  = pct + '%';
+
+  const warn = document.getElementById('budget-warning');
+  warn.style.display = (pct > 50) ? 'block' : 'none';
+
+  // Color coding
+  const statPct = document.getElementById('stat-pct');
+  if (pct > 60) statPct.style.color = '#e74';
+  else if (pct > 35) statPct.style.color = '#f90';
+  else statPct.style.color = '#4a9';
+}
+updateBudget();
+
+// ---- Decision Tree ----
+const treeData = {
+  rules: {
+    q: "How often does this rule apply?",
+    options: [
+      { label: "Every single session, no matter what — it's a hard constraint", next: 'hardRule' },
+      { label: "Only for specific tasks or workflows", next: 'softRule' },
+      { label: "Only when working on a specific product or client", next: 'supplement' }
+    ]
+  },
+  context: {
+    q: "How often does Claude need this context?",
+    options: [
+      { label: "Every session — it defines the workspace itself (company, role, identity)", next: 'claudemd' },
+      { label: "Only when working on a specific product or client", next: 'supplement' },
+      { label: "Only occasionally, when directly relevant to a task", next: 'knowledgeBase' }
+    ]
+  },
+  procedure: {
+    q: "How complex is the procedure?",
+    options: [
+      { label: "Brief shorthand — 'when I say X, do Y'", next: 'shortcuts' },
+      { label: "Multi-step, standalone process worth its own file", next: 'rulesFile' },
+      { label: "A skill with interactive prompts and decision points", next: 'skill' }
+    ]
+  },
+  knowledge: {
+    q: "How large is this reference material?",
+    options: [
+      { label: "A few key facts Claude needs in every session", next: 'claudemd' },
+      { label: "A full document or spec — more than a few hundred words", next: 'knowledgeBase' },
+      { label: "Product-specific: pricing, features, changelog", next: 'supplement' }
+    ]
+  },
+  hardRule: {
+    result: true,
+    where: "CLAUDE.md — Rules section, near the top",
+    why: "Hard constraints that apply to every session should be in the highest-attention zone of your configuration. Put them in a dedicated Rules section, formatted clearly, and place that section in the first third of the file.",
+    example: 'NEVER deploy to production without explicit human approval.\nNEVER modify files outside the /src directory.'
+  },
+  softRule: {
+    result: true,
+    where: "@-imported rules file (e.g., workflow-rules.md)",
+    why: "Workflow-specific rules belong in their own rules file, imported into CLAUDE.md. This keeps the root file clean and lets you evolve the rules independently. The @-import gives them the same priority as inline content.",
+    example: '@.claude/rules/deployment-rules.md\n@.claude/rules/client-handling.md'
+  },
+  claudemd: {
+    result: true,
+    where: "CLAUDE.md — directly",
+    why: "Core workspace identity and always-needed context belongs in CLAUDE.md itself. It should be concise — a few sentences or a short list. If it's getting long, it's probably reference material that belongs in a knowledge base instead.",
+    example: "Company: Acme Corp — B2B SaaS, 45 employees.\nPrimary tools: Salesforce, Linear, Slack.\nTimezone: US Central."
+  },
+  supplement: {
+    result: true,
+    where: "Product/client supplement file",
+    why: "Product features, client details, and project-specific context belong in supplement files (e.g., ProductName-CLAUDE-supplement.md). These are loaded at session start when working on that product, but don't pollute every other session with irrelevant context.",
+    example: "TrackMePlus-CLAUDE-supplement.md\nKincaid-Client-supplement.md"
+  },
+  knowledgeBase: {
+    result: true,
+    where: "Knowledge base (retrieved on demand)",
+    why: "Large reference documents shouldn't live in boot context. Put them in a searchable knowledge base. Claude retrieves what it needs when it needs it — this costs nothing at session start and scales to any size.",
+    example: "search_docs('product pricing history')\nget_doc('clients/acme/contract.md')"
+  },
+  shortcuts: {
+    result: true,
+    where: "CLAUDE.md — Shorthand Commands section",
+    why: "Short command definitions belong directly in CLAUDE.md where they load automatically. 'check inbox' → 'run email check on all five accounts' is boot-time vocabulary that Claude needs available from the first message.",
+    example: '"deploy" = run deploy.sh on staging, verify health check, notify #ops-slack'
+  },
+  rulesFile: {
+    result: true,
+    where: "@-imported rules file (e.g., session-protocol.md)",
+    why: "Multi-step procedures that Claude follows repeatedly — session startup checklists, deployment protocols, content workflows — deserve their own dedicated files. @-import them into CLAUDE.md. This lets you version-control and update them independently.",
+    example: '@.claude/rules/session-protocol.md\n@.claude/rules/deployment-checklist.md'
+  },
+  skill: {
+    result: true,
+    where: "Skill file (SKILL.md in skills/ directory)",
+    why: "Complex interactive procedures — ones with decision points, context gathering, and multi-step outputs — belong in the Skills system. Skills load on demand when invoked, not at boot time. They're not appropriate for CLAUDE.md because they're too large and too situational.",
+    example: 'skills/content-creation/SKILL.md\nskills/client-onboarding/SKILL.md'
+  }
+};
+
+let treeState = 'start';
+
+function treeStep(choice) {
+  const data = treeData[choice];
+  if (!data) return;
+
+  if (data.result) {
+    document.getElementById('tree-container').style.display = 'none';
+    const result = document.getElementById('tree-result');
+    result.classList.add('show');
+    document.getElementById('result-where').textContent = '→ ' + data.where;
+    document.getElementById('result-why').textContent = data.why;
+    document.getElementById('result-example').textContent = data.example;
+  } else {
+    const container = document.getElementById('tree-container');
+    container.innerHTML = `
+      <div class="tree-question">
+        <div class="tree-q-text">${data.q}</div>
+        <div class="tree-options">
+          ${data.options.map(o => `<button class="tree-btn" onclick="treeStep('${o.next}')">${o.label}</button>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+}
+
+function treeReset() {
+  document.getElementById('tree-result').classList.remove('show');
+  const container = document.getElementById('tree-container');
+  container.style.display = 'block';
+  container.innerHTML = `
+    <div class="tree-question" id="tree-q0">
+      <div class="tree-q-text">What kind of information is this?</div>
+      <div class="tree-options">
+        <button class="tree-btn" onclick="treeStep('rules')">It's a rule or constraint — something Claude must always do or never do</button>
+        <button class="tree-btn" onclick="treeStep('context')">It's context — background about the company, product, client, or situation</button>
+        <button class="tree-btn" onclick="treeStep('procedure')">It's a procedure — step-by-step instructions for a recurring task</button>
+        <button class="tree-btn" onclick="treeStep('knowledge')">It's reference material — specs, pricing, contacts, documentation</button>
+      </div>
+    </div>
+  `;
+}
+</script>
+
+</body>
+</html>

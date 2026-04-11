@@ -143,7 +143,7 @@
   <h1>How <span>Claude</span> Thinks</h1>
   <p>Six interactive lessons on what's actually happening inside the AI you're already using. No jargon. No fluff. Just the mechanics, explained honestly.</p>
   <div class="hero-meta">
-    <span>📚 <strong>6</strong> lessons complete</span>
+    <span>📚 <strong>7</strong> lessons complete</span>
     <span>⏱ <strong>~20 min</strong> per lesson</span>
     <span>🎯 For <strong>curious non-developers</strong></span>
   </div>
@@ -252,21 +252,106 @@
 
   </div>
 
-  <!-- Phase 2 Coming Soon -->
-  <div class="phase-coming">
-    <div class="phase-header" style="margin-bottom:10px">
-      <div class="phase-badge">Phase 2 — Coming Soon</div>
-      <div class="phase-title">The Configuration Layer</div>
+  <!-- Phase 2 -->
+  <div class="phase-header">
+    <div class="phase-badge">Phase 2 — In Progress</div>
+    <div class="phase-title">The Configuration Layer</div>
+  </div>
+  <p class="phase-desc">The files that shape Claude's behavior. Why structure matters more than word count.</p>
+
+  <div class="lessons">
+
+    <a href="phase2-session1-claudemd.html" class="lesson-card available">
+      <div class="lesson-num num-done">7</div>
+      <div class="lesson-body">
+        <div class="lesson-title">CLAUDE.md Deep Dive</div>
+        <div class="lesson-desc">Boot context explained. Anatomy of a CLAUDE.md, token cost tradeoffs, the @-import system, and a decision tree for where information belongs.</div>
+        <div class="lesson-tags">
+          <span class="lesson-tag">boot context</span>
+          <span class="lesson-tag">token budget</span>
+          <span class="lesson-tag">@-imports</span>
+          <span class="lesson-tag">configuration</span>
+        </div>
+      </div>
+      <div class="lesson-status status-available">Available</div>
+      <div class="lesson-arrow">→</div>
+    </a>
+
+    <div class="lesson-card" style="cursor:default; opacity:0.5;">
+      <div class="lesson-num num-locked">8</div>
+      <div class="lesson-body">
+        <div class="lesson-title">Rules Files</div>
+        <div class="lesson-desc">How @-imports work, why modular beats monolithic, and how to write rules that actually change Claude's behavior vs. ones that get quietly ignored.</div>
+        <div class="lesson-tags">
+          <span class="lesson-tag">rules files</span>
+          <span class="lesson-tag">attention weight</span>
+          <span class="lesson-tag">modular config</span>
+        </div>
+      </div>
+      <div class="lesson-status status-soon">Coming Soon</div>
+      <div class="lesson-arrow" style="color:#333;">→</div>
     </div>
-    <p style="color:#555; font-size:14px;">The files that shape Claude's behavior. Why structure matters more than word count.</p>
-    <div class="coming-list">
-      <div class="coming-item"><div class="coming-dot"></div>CLAUDE.md Deep Dive — what every section actually does</div>
-      <div class="coming-item"><div class="coming-dot"></div>Rules Files — how @-imports work and why modular beats monolithic</div>
-      <div class="coming-item"><div class="coming-dot"></div>Supplements and Product Context — when to pre-load vs. retrieve</div>
-      <div class="coming-item"><div class="coming-dot"></div>Session Memory — cross-session continuity without magic</div>
-      <div class="coming-item"><div class="coming-dot"></div>The Knowledge Base — semantic search and institutional memory</div>
-      <div class="coming-item"><div class="coming-dot"></div>Prompt Engineering from the Inside — what bold and caps really do</div>
+
+    <div class="lesson-card" style="cursor:default; opacity:0.5;">
+      <div class="lesson-num num-locked">9</div>
+      <div class="lesson-body">
+        <div class="lesson-title">Supplements and Product Context</div>
+        <div class="lesson-desc">When to pre-load context vs. retrieve it on demand. How supplement files work and why they exist separately from CLAUDE.md.</div>
+        <div class="lesson-tags">
+          <span class="lesson-tag">supplements</span>
+          <span class="lesson-tag">product context</span>
+          <span class="lesson-tag">retrieval</span>
+        </div>
+      </div>
+      <div class="lesson-status status-soon">Coming Soon</div>
+      <div class="lesson-arrow" style="color:#333;">→</div>
     </div>
+
+    <div class="lesson-card" style="cursor:default; opacity:0.5;">
+      <div class="lesson-num num-locked">10</div>
+      <div class="lesson-body">
+        <div class="lesson-title">Session Memory</div>
+        <div class="lesson-desc">Cross-session continuity without magic. What actually persists, what gets lost, and how to design for the reality of Claude's memory model.</div>
+        <div class="lesson-tags">
+          <span class="lesson-tag">session memory</span>
+          <span class="lesson-tag">continuity</span>
+          <span class="lesson-tag">handoff</span>
+        </div>
+      </div>
+      <div class="lesson-status status-soon">Coming Soon</div>
+      <div class="lesson-arrow" style="color:#333;">→</div>
+    </div>
+
+    <div class="lesson-card" style="cursor:default; opacity:0.5;">
+      <div class="lesson-num num-locked">11</div>
+      <div class="lesson-body">
+        <div class="lesson-title">The Knowledge Base</div>
+        <div class="lesson-desc">Semantic search and institutional memory. When to retrieve vs. when to pre-load, and how to design a KB that scales without bloating your context.</div>
+        <div class="lesson-tags">
+          <span class="lesson-tag">knowledge base</span>
+          <span class="lesson-tag">semantic search</span>
+          <span class="lesson-tag">retrieval</span>
+        </div>
+      </div>
+      <div class="lesson-status status-soon">Coming Soon</div>
+      <div class="lesson-arrow" style="color:#333;">→</div>
+    </div>
+
+    <div class="lesson-card" style="cursor:default; opacity:0.5;">
+      <div class="lesson-num num-locked">12</div>
+      <div class="lesson-body">
+        <div class="lesson-title">Prompt Engineering from the Inside</div>
+        <div class="lesson-desc">How Claude actually interprets your instructions. What bold and caps really do (less than you think). Why examples outperform rules.</div>
+        <div class="lesson-tags">
+          <span class="lesson-tag">prompting</span>
+          <span class="lesson-tag">instruction design</span>
+          <span class="lesson-tag">formatting</span>
+        </div>
+      </div>
+      <div class="lesson-status status-soon">Coming Soon</div>
+      <div class="lesson-arrow" style="color:#333;">→</div>
+    </div>
+
   </div>
 
   <!-- About -->
