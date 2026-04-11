@@ -3,371 +3,485 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>How Claude Thinks — A Practical Course</title>
+<title>How Claude Thinks — NexHam Learning</title>
+<meta name="description" content="A professional course on how Claude AI actually works — context windows, configuration, multi-agent systems, and more. Built by NexHam.">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-    background: #1a1a1a; color: #e0e0e0;
-    line-height: 1.6; min-height: 100vh;
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --copper: #C8956C;
+    --copper-light: #d4a57c;
+    --copper-dim: rgba(200,149,108,0.15);
+    --bg: #080808;
+    --bg-card: #111111;
+    --bg-border: #1f1f1f;
+    --text: #f0f0f0;
+    --text-mid: #999;
+    --text-dim: #555;
+    --green: #3ecf8e;
   }
 
-  /* Header */
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ---- NAV ---- */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px; height: 60px;
+    background: rgba(8,8,8,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--bg-border);
+  }
+  .nav-logo {
+    display: flex; align-items: center; gap: 10px;
+    text-decoration: none; color: var(--text);
+    font-size: 15px; font-weight: 600; letter-spacing: -0.3px;
+  }
+  .nav-logo-mark {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: var(--copper); display: flex; align-items: center;
+    justify-content: center; font-size: 13px; font-weight: 800; color: #000;
+  }
+  .nav-right { display: flex; align-items: center; gap: 20px; }
+  .nav-link { color: var(--text-mid); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+  .nav-link:hover { color: var(--text); }
+  .nav-cta {
+    background: var(--copper); color: #000; font-size: 13px; font-weight: 600;
+    padding: 7px 16px; border-radius: 7px; text-decoration: none; transition: all 0.2s;
+  }
+  .nav-cta:hover { background: var(--copper-light); }
+
+  /* ---- HERO ---- */
   .hero {
-    background: linear-gradient(135deg, #1a1a1a 0%, #2a1f14 100%);
-    border-bottom: 1px solid #333;
-    padding: 60px 40px 50px;
+    padding: 140px 32px 100px;
+    max-width: 860px; margin: 0 auto;
     text-align: center;
   }
-  .hero-tag {
-    display: inline-block;
-    background: #3a2a1a; border: 1px solid #C8956C;
-    color: #C8956C; font-size: 12px; letter-spacing: 2px;
-    text-transform: uppercase; padding: 5px 14px;
-    border-radius: 20px; margin-bottom: 20px;
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--copper-dim); border: 1px solid rgba(200,149,108,0.3);
+    color: var(--copper); font-size: 12px; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase;
+    padding: 5px 14px; border-radius: 20px; margin-bottom: 28px;
   }
-  .hero h1 {
-    color: #fff; font-size: 42px; font-weight: 700;
-    line-height: 1.2; margin-bottom: 16px;
+  .hero-eyebrow-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--copper); animation: pulse 2s infinite;
   }
-  .hero h1 span { color: #C8956C; }
-  .hero p {
-    color: #aaa; font-size: 18px; max-width: 580px;
-    margin: 0 auto 30px; line-height: 1.7;
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
   }
-  .hero-meta {
-    display: flex; justify-content: center; gap: 30px;
-    flex-wrap: wrap; font-size: 14px; color: #666;
+  h1 {
+    font-size: clamp(36px, 6vw, 64px);
+    font-weight: 800; letter-spacing: -2px; line-height: 1.05;
+    margin-bottom: 24px; color: #fff;
   }
-  .hero-meta span { display: flex; align-items: center; gap: 6px; }
-  .hero-meta strong { color: #C8956C; }
+  h1 span { color: var(--copper); }
+  .hero-sub {
+    font-size: clamp(16px, 2vw, 19px); color: var(--text-mid);
+    max-width: 600px; margin: 0 auto 48px;
+    line-height: 1.7; font-weight: 400;
+  }
 
-  /* Main content */
-  .container { max-width: 900px; margin: 0 auto; padding: 50px 30px; }
+  /* ---- EMAIL FORM ---- */
+  .form-wrap {
+    max-width: 480px; margin: 0 auto 20px;
+  }
+  .form-row {
+    display: flex; gap: 0;
+    background: var(--bg-card); border: 1px solid var(--bg-border);
+    border-radius: 10px; overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .form-row:focus-within { border-color: var(--copper); }
+  .form-input {
+    flex: 1; background: none; border: none; outline: none;
+    padding: 14px 18px; font-size: 15px; color: var(--text);
+    font-family: inherit;
+  }
+  .form-input::placeholder { color: var(--text-dim); }
+  .form-btn {
+    background: var(--copper); color: #000; border: none;
+    padding: 14px 22px; font-size: 14px; font-weight: 700;
+    cursor: pointer; font-family: inherit; white-space: nowrap;
+    transition: background 0.2s;
+  }
+  .form-btn:hover { background: var(--copper-light); }
+  .form-note {
+    font-size: 12px; color: var(--text-dim); text-align: center; margin-top: 10px;
+  }
+  .form-success {
+    display: none; background: rgba(62,207,142,0.1); border: 1px solid rgba(62,207,142,0.3);
+    border-radius: 10px; padding: 14px 20px; text-align: center;
+    color: var(--green); font-size: 14px;
+  }
 
-  /* Phase header */
+  /* ---- STATS ---- */
+  .stats {
+    display: flex; justify-content: center; gap: 48px;
+    flex-wrap: wrap; margin: 56px auto 0; max-width: 600px;
+    padding-top: 48px; border-top: 1px solid var(--bg-border);
+  }
+  .stat { text-align: center; }
+  .stat-num {
+    font-size: 28px; font-weight: 800; color: #fff;
+    letter-spacing: -1px; display: block;
+  }
+  .stat-label { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+
+  /* ---- SECTION ---- */
+  .section { max-width: 900px; margin: 0 auto; padding: 80px 32px; }
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--copper); margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: clamp(24px, 4vw, 36px); font-weight: 800;
+    letter-spacing: -1px; color: #fff; margin-bottom: 16px; line-height: 1.15;
+  }
+  .section-sub { font-size: 16px; color: var(--text-mid); max-width: 540px; line-height: 1.7; }
+
+  /* ---- COURSE PHASES ---- */
+  .phases { margin-top: 48px; }
+  .phase {
+    border: 1px solid var(--bg-border); border-radius: 12px;
+    overflow: hidden; margin-bottom: 16px; transition: border-color 0.2s;
+  }
+  .phase:hover { border-color: #333; }
   .phase-header {
     display: flex; align-items: center; gap: 16px;
-    margin-bottom: 24px;
+    padding: 20px 24px; background: var(--bg-card); cursor: pointer;
   }
-  .phase-badge {
-    background: #C8956C; color: #1a1a1a;
-    font-size: 11px; font-weight: 700; letter-spacing: 1px;
-    text-transform: uppercase; padding: 4px 12px; border-radius: 20px;
-    white-space: nowrap;
-  }
-  .phase-title { color: #fff; font-size: 22px; font-weight: 600; }
-  .phase-desc { color: #777; font-size: 14px; margin-bottom: 28px; }
-
-  /* Lesson cards */
-  .lessons { display: flex; flex-direction: column; gap: 12px; margin-bottom: 50px; }
-
-  .lesson-card {
-    display: flex; align-items: center; gap: 20px;
-    background: #242424; border: 1px solid #333;
-    border-radius: 12px; padding: 20px 24px;
-    text-decoration: none; color: inherit;
-    transition: all 0.2s; cursor: pointer;
-  }
-  .lesson-card:hover {
-    background: #2a2a2a; border-color: #C8956C;
-    transform: translateX(4px);
-  }
-  .lesson-card.available:hover .lesson-arrow { color: #C8956C; }
-
-  .lesson-num {
-    width: 40px; height: 40px; border-radius: 10px;
+  .phase-num {
+    width: 36px; height: 36px; border-radius: 9px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 16px; font-weight: 700; flex-shrink: 0;
+    font-size: 13px; font-weight: 800; flex-shrink: 0;
   }
-  .num-done { background: #2a3a2a; color: #4a9; border: 1px solid #2a5a2a; }
-  .num-locked { background: #252525; color: #555; border: 1px solid #333; }
-
-  .lesson-body { flex: 1; }
-  .lesson-title { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 4px; }
-  .lesson-desc { font-size: 13px; color: #777; }
-  .lesson-tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-  .lesson-tag {
-    background: #333; color: #999; font-size: 11px;
-    padding: 2px 8px; border-radius: 10px;
+  .phase-1 .phase-num { background: var(--copper-dim); color: var(--copper); }
+  .phase-2 .phase-num { background: rgba(122,175,255,0.12); color: #7af; }
+  .phase-3 .phase-num { background: rgba(74,153,100,0.12); color: #4a9; }
+  .phase-4 .phase-num { background: rgba(215,170,230,0.12); color: #d7a; }
+  .phase-5 .phase-num { background: rgba(100,100,255,0.12); color: #99f; }
+  .phase-title { font-size: 15px; font-weight: 700; color: #fff; flex: 1; }
+  .phase-subtitle { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+  .phase-badge {
+    font-size: 11px; font-weight: 600; padding: 3px 10px;
+    border-radius: 20px; flex-shrink: 0; letter-spacing: 0.5px;
   }
-
-  .lesson-arrow { color: #555; font-size: 20px; flex-shrink: 0; transition: color 0.2s; }
-  .lesson-status {
-    font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
-    color: #555; flex-shrink: 0;
+  .badge-ready  { background: rgba(62,207,142,0.12); color: var(--green); border: 1px solid rgba(62,207,142,0.2); }
+  .badge-soon   { background: var(--bg-border); color: var(--text-dim); }
+  .phase-lessons {
+    padding: 0 24px 20px; display: none; flex-direction: column; gap: 8px;
   }
-  .status-available { color: #4a9; }
-  .status-soon { color: #555; }
-
-  /* Coming soon phase */
-  .phase-coming {
-    background: #1e1e1e; border: 1px dashed #333;
-    border-radius: 12px; padding: 28px 24px; margin-bottom: 50px;
-  }
-  .phase-coming .phase-title { color: #555; }
-  .phase-coming .phase-badge { background: #333; color: #666; }
-  .coming-list { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
-  .coming-item {
+  .phase-lessons.open { display: flex; }
+  .lesson-row {
     display: flex; align-items: center; gap: 12px;
-    color: #555; font-size: 14px;
+    padding: 10px 14px; border-radius: 8px; background: rgba(255,255,255,0.03);
   }
-  .coming-dot {
-    width: 6px; height: 6px; background: #444;
-    border-radius: 50%; flex-shrink: 0;
-  }
+  .lesson-icon { font-size: 14px; flex-shrink: 0; }
+  .lesson-name { font-size: 13px; color: #ccc; flex: 1; }
+  .lesson-lock { font-size: 12px; color: var(--text-dim); flex-shrink: 0; }
 
-  /* About */
-  .about {
-    background: #242424; border-radius: 12px;
-    padding: 32px; margin-bottom: 20px;
-    border: 1px solid #333;
+  /* ---- WHO IS THIS FOR ---- */
+  .audience-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px; margin-top: 40px;
   }
-  .about h2 { color: #C8956C; font-size: 18px; margin-bottom: 12px; }
-  .about p { color: #aaa; font-size: 14px; line-height: 1.8; margin-bottom: 10px; }
-  .about p:last-child { margin-bottom: 0; }
+  .audience-card {
+    background: var(--bg-card); border: 1px solid var(--bg-border);
+    border-radius: 12px; padding: 22px;
+  }
+  .audience-icon { font-size: 24px; margin-bottom: 12px; }
+  .audience-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .audience-desc { font-size: 13px; color: var(--text-mid); line-height: 1.6; }
 
-  /* Footer */
+  /* ---- ABOUT ---- */
+  .about-strip {
+    background: var(--bg-card); border-top: 1px solid var(--bg-border);
+    border-bottom: 1px solid var(--bg-border);
+  }
+  .about-inner {
+    max-width: 900px; margin: 0 auto; padding: 60px 32px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+  }
+  @media (max-width: 640px) { .about-inner { grid-template-columns: 1fr; gap: 32px; } }
+  .about-title { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 16px; letter-spacing: -0.5px; }
+  .about-body { font-size: 15px; color: var(--text-mid); line-height: 1.8; }
+  .about-body strong { color: var(--text); }
+  .about-points { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .about-points li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 14px; color: var(--text-mid); line-height: 1.5;
+  }
+  .about-points li::before { content: '→'; color: var(--copper); flex-shrink: 0; }
+
+  /* ---- FOOTER ---- */
   footer {
-    text-align: center; padding: 30px;
-    color: #555; font-size: 13px; border-top: 1px solid #222;
+    max-width: 900px; margin: 0 auto;
+    padding: 40px 32px; display: flex;
+    align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 16px;
+    border-top: 1px solid var(--bg-border);
   }
-  footer a { color: #C8956C; text-decoration: none; }
+  footer p { font-size: 13px; color: var(--text-dim); }
+  footer a { color: var(--copper); text-decoration: none; }
   footer a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
 
-<div class="hero">
-  <div class="hero-tag">Free Course</div>
-  <h1>How <span>Claude</span> Thinks</h1>
-  <p>Six interactive lessons on what's actually happening inside the AI you're already using. No jargon. No fluff. Just the mechanics, explained honestly.</p>
-  <div class="hero-meta">
-    <span>📚 <strong>8</strong> lessons complete</span>
-    <span>⏱ <strong>~20 min</strong> per lesson</span>
-    <span>🎯 For <strong>curious non-developers</strong></span>
+<nav>
+  <a href="https://nexhamcorp.com" class="nav-logo">
+    <div class="nav-logo-mark">N</div>
+    NexHam
+  </a>
+  <div class="nav-right">
+    <a href="https://nexhamcorp.com" class="nav-link">Home</a>
+    <a href="#course" class="nav-link">Course</a>
+    <a href="#notify" class="nav-cta">Get Early Access</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="notify">
+  <div class="hero-eyebrow">
+    <div class="hero-eyebrow-dot"></div>
+    Launching Soon
+  </div>
+
+  <h1>Understand <span>Claude</span><br>From the Inside Out</h1>
+
+  <p class="hero-sub">
+    A professional course on how Claude AI actually works — not theory, not hype.
+    Context windows, configuration, multi-agent systems, and the mechanics behind every behavior you've wondered about.
+  </p>
+
+  <div class="form-wrap">
+    <form class="form-row" id="notify-form" onsubmit="handleSubmit(event)">
+      <input
+        type="email"
+        class="form-input"
+        id="email-input"
+        placeholder="your@email.com"
+        required
+        autocomplete="email"
+      />
+      <button type="submit" class="form-btn">Notify Me</button>
+    </form>
+    <p class="form-note">Early access pricing. No spam. Unsubscribe anytime.</p>
+    <div class="form-success" id="form-success">
+      ✓ You're on the list. We'll email you when early access opens.
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <span class="stat-num">5</span>
+      <span class="stat-label">Phases of learning</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num">30+</span>
+      <span class="stat-label">Interactive lessons</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num">0</span>
+      <span class="stat-label">Coding required</span>
+    </div>
+  </div>
+</section>
+
+<!-- COURSE OUTLINE -->
+<section class="section" id="course">
+  <div class="section-label">The Curriculum</div>
+  <h2 class="section-title">Five phases. No fluff.</h2>
+  <p class="section-sub">Each phase builds on the last — from how the model itself works, to designing systems that run reliably at scale.</p>
+
+  <div class="phases">
+
+    <div class="phase phase-1">
+      <div class="phase-header" onclick="togglePhase(this)">
+        <div class="phase-num">1</div>
+        <div>
+          <div class="phase-title">How Claude Thinks</div>
+          <div class="phase-subtitle">Context windows, tokens, attention, memory, temperature</div>
+        </div>
+        <span class="phase-badge badge-ready">8 Lessons Ready</span>
+      </div>
+      <div class="phase-lessons open">
+        <div class="lesson-row"><div class="lesson-icon">📐</div><div class="lesson-name">The Context Window</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🚀</div><div class="lesson-name">What Claude Sees at Session Start</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🪙</div><div class="lesson-name">Tokens — The Real Currency</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🧠</div><div class="lesson-name">Why Claude "Forgets"</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">👁️</div><div class="lesson-name">How Claude Reads Instructions</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🌡️</div><div class="lesson-name">Temperature and Personality</div><div class="lesson-lock">🔒</div></div>
+      </div>
+    </div>
+
+    <div class="phase phase-2">
+      <div class="phase-header" onclick="togglePhase(this)">
+        <div class="phase-num">2</div>
+        <div>
+          <div class="phase-title">The Configuration Layer</div>
+          <div class="phase-subtitle">CLAUDE.md, rules files, supplements, knowledge bases</div>
+        </div>
+        <span class="phase-badge badge-ready">In Progress</span>
+      </div>
+      <div class="phase-lessons">
+        <div class="lesson-row"><div class="lesson-icon">📄</div><div class="lesson-name">CLAUDE.md Deep Dive</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">📋</div><div class="lesson-name">Rules Files</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🧩</div><div class="lesson-name">Supplements and Product Context</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🔄</div><div class="lesson-name">Session Memory</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🗄️</div><div class="lesson-name">The Knowledge Base</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">✍️</div><div class="lesson-name">Prompt Engineering from the Inside</div><div class="lesson-lock">🔒</div></div>
+      </div>
+    </div>
+
+    <div class="phase phase-3">
+      <div class="phase-header" onclick="togglePhase(this)">
+        <div class="phase-num">3</div>
+        <div>
+          <div class="phase-title">The Tools Layer</div>
+          <div class="phase-subtitle">API, Claude Code, MCP, Skills and Plugins</div>
+        </div>
+        <span class="phase-badge badge-soon">Coming Soon</span>
+      </div>
+      <div class="phase-lessons">
+        <div class="lesson-row"><div class="lesson-icon">⚡</div><div class="lesson-name">The Anthropic API — Demystified</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">💻</div><div class="lesson-name">Claude Code</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🔌</div><div class="lesson-name">MCP Fundamentals</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🏗️</div><div class="lesson-name">MCP in Practice</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🖥️</div><div class="lesson-name">Cowork vs. Code vs. Desktop</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🎯</div><div class="lesson-name">Skills and Plugins</div><div class="lesson-lock">🔒</div></div>
+      </div>
+    </div>
+
+    <div class="phase phase-4">
+      <div class="phase-header" onclick="togglePhase(this)">
+        <div class="phase-num">4</div>
+        <div>
+          <div class="phase-title">The Orchestration Layer</div>
+          <div class="phase-subtitle">Multi-session design, shared memory, failure modes</div>
+        </div>
+        <span class="phase-badge badge-soon">Coming Soon</span>
+      </div>
+      <div class="phase-lessons">
+        <div class="lesson-row"><div class="lesson-icon">🌐</div><div class="lesson-name">Why Multi-Session</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🎭</div><div class="lesson-name">Role Design Patterns</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🧬</div><div class="lesson-name">Shared Memory Architecture</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">💬</div><div class="lesson-name">Inter-Session Communication</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🚦</div><div class="lesson-name">Human-in-the-Loop Design</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🛡️</div><div class="lesson-name">Failure Modes and Recovery</div><div class="lesson-lock">🔒</div></div>
+      </div>
+    </div>
+
+    <div class="phase phase-5">
+      <div class="phase-header" onclick="togglePhase(this)">
+        <div class="phase-num">5</div>
+        <div>
+          <div class="phase-title">The Competitive Landscape</div>
+          <div class="phase-subtitle">ChatGPT, Gemini, Grok, multi-model strategy</div>
+        </div>
+        <span class="phase-badge badge-soon">Coming Soon</span>
+      </div>
+      <div class="phase-lessons">
+        <div class="lesson-row"><div class="lesson-icon">🤖</div><div class="lesson-name">OpenAI / ChatGPT</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🔍</div><div class="lesson-name">Google Gemini</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">⚡</div><div class="lesson-name">xAI Grok</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🧪</div><div class="lesson-name">The Others — Llama, Mistral, Local</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🎯</div><div class="lesson-name">Multi-Model Strategy</div><div class="lesson-lock">🔒</div></div>
+        <div class="lesson-row"><div class="lesson-icon">🔮</div><div class="lesson-name">The Future</div><div class="lesson-lock">🔒</div></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- WHO IS THIS FOR -->
+<section class="section" style="padding-top: 0;">
+  <div class="section-label">Who It's For</div>
+  <h2 class="section-title">You don't need to be a developer.</h2>
+  <p class="section-sub">If you use Claude — or want to — this course is for you. The only prerequisite is curiosity.</p>
+
+  <div class="audience-grid">
+    <div class="audience-card">
+      <div class="audience-icon">💼</div>
+      <div class="audience-title">IT Managers & Directors</div>
+      <div class="audience-desc">Evaluating AI deployment for your team or organization. Understand what you're actually buying before you commit.</div>
+    </div>
+    <div class="audience-card">
+      <div class="audience-icon">🏢</div>
+      <div class="audience-title">Business Owners</div>
+      <div class="audience-desc">Want to use Claude but keep hitting walls. Learn the configuration layer that makes the difference between useful and unreliable.</div>
+    </div>
+    <div class="audience-card">
+      <div class="audience-icon">🎓</div>
+      <div class="audience-title">Professionals & Consultants</div>
+      <div class="audience-desc">Already using Claude but working by feel. Get the mental model that turns guessing into understanding.</div>
+    </div>
+    <div class="audience-card">
+      <div class="audience-icon">🛠️</div>
+      <div class="audience-title">Developers & Builders</div>
+      <div class="audience-desc">Building with the API or Claude Code. Understand the model deeply before you architect systems on top of it.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<div class="about-strip">
+  <div class="about-inner">
+    <div>
+      <div class="about-title">Built from the inside</div>
+      <p class="about-body">
+        This course isn't theory from someone who read the docs.
+        It's built by <strong>NexHam</strong> — a software and AI consulting firm that runs
+        one of the most sophisticated multi-session Claude deployments in production,
+        with 80+ sessions of real operational experience.
+        <br><br>
+        Every lesson reflects how Claude actually behaves, not how the marketing says it should.
+      </p>
+    </div>
+    <ul class="about-points">
+      <li>Interactive lessons with live visualizations — not slides</li>
+      <li>Honest explanations of limitations, not just capabilities</li>
+      <li>Configuration templates you can use immediately</li>
+      <li>Designed for non-developers who want real understanding</li>
+      <li>Continuously updated as Claude evolves</li>
+    </ul>
   </div>
 </div>
 
-<div class="container">
-
-  <!-- Phase 1 -->
-  <div class="phase-header">
-    <div class="phase-badge">Phase 1 — Complete</div>
-    <div class="phase-title">How Claude Thinks</div>
-  </div>
-  <p class="phase-desc">The machine itself. What Claude actually "sees" and why it behaves the way it does.</p>
-
-  <div class="lessons">
-
-    <a href="phase1-session1-context-window.html" class="lesson-card available">
-      <div class="lesson-num num-done">1</div>
-      <div class="lesson-body">
-        <div class="lesson-title">The Context Window</div>
-        <div class="lesson-desc">What it is physically, how big it is, what fills it up, and why it's the most important concept in AI.</div>
-        <div class="lesson-tags">
-          <span class="lesson-tag">context window</span>
-          <span class="lesson-tag">tokens</span>
-          <span class="lesson-tag">memory</span>
-        </div>
-      </div>
-      <div class="lesson-status status-available">Available</div>
-      <div class="lesson-arrow">→</div>
-    </a>
-
-    <a href="phase1-session2-boot-sequence.html" class="lesson-card available">
-      <div class="lesson-num num-done">2</div>
-      <div class="lesson-body">
-        <div class="lesson-title">What Claude Sees at Session Start</div>
-        <div class="lesson-desc">The exact loading order — system prompt → CLAUDE.md → rules → your first message — visualized step by step.</div>
-        <div class="lesson-tags">
-          <span class="lesson-tag">boot sequence</span>
-          <span class="lesson-tag">CLAUDE.md</span>
-          <span class="lesson-tag">startup</span>
-        </div>
-      </div>
-      <div class="lesson-status status-available">Available</div>
-      <div class="lesson-arrow">→</div>
-    </a>
-
-    <a href="phase1-session3-tokens.html" class="lesson-card available">
-      <div class="lesson-num num-done">3</div>
-      <div class="lesson-body">
-        <div class="lesson-title">Tokens: The Real Currency</div>
-        <div class="lesson-desc">What a token actually is, why "200K context" isn't 200K words, and how to count them with a live tokenizer.</div>
-        <div class="lesson-tags">
-          <span class="lesson-tag">tokenization</span>
-          <span class="lesson-tag">cost</span>
-          <span class="lesson-tag">interactive</span>
-        </div>
-      </div>
-      <div class="lesson-status status-available">Available</div>
-      <div class="lesson-arrow">→</div>
-    </a>
-
-    <a href="phase1-session4-forgetting.html" class="lesson-card available">
-      <div class="lesson-num num-done">4</div>
-      <div class="lesson-body">
-        <div class="lesson-title">Why Claude "Forgets"</div>
-        <div class="lesson-desc">Not a bug — an architectural reality. Three types of forgetting, what compaction is, and what survives vs. what doesn't.</div>
-        <div class="lesson-tags">
-          <span class="lesson-tag">compaction</span>
-          <span class="lesson-tag">attention fade</span>
-          <span class="lesson-tag">session memory</span>
-        </div>
-      </div>
-      <div class="lesson-status status-available">Available</div>
-      <div class="lesson-arrow">→</div>
-    </a>
-
-    <a href="phase1-session5-reading-instructions.html" class="lesson-card available">
-      <div class="lesson-num num-done">5</div>
-      <div class="lesson-body">
-        <div class="lesson-title">How Claude "Reads" Instructions</div>
-        <div class="lesson-desc">Attention, primacy-recency bias, and why instructions at the top hit different. Includes an instruction rater and before/after examples.</div>
-        <div class="lesson-tags">
-          <span class="lesson-tag">attention</span>
-          <span class="lesson-tag">instruction quality</span>
-          <span class="lesson-tag">configuration</span>
-        </div>
-      </div>
-      <div class="lesson-status status-available">Available</div>
-      <div class="lesson-arrow">→</div>
-    </a>
-
-    <a href="phase1-session6-temperature.html" class="lesson-card available">
-      <div class="lesson-num num-done">6</div>
-      <div class="lesson-body">
-        <div class="lesson-title">Temperature and Personality</div>
-        <div class="lesson-desc">What makes Claude creative vs. precise, why the same prompt gives different results, and what "thinking" actually means mechanically.</div>
-        <div class="lesson-tags">
-          <span class="lesson-tag">temperature</span>
-          <span class="lesson-tag">extended thinking</span>
-          <span class="lesson-tag">model comparison</span>
-        </div>
-      </div>
-      <div class="lesson-status status-available">Available</div>
-      <div class="lesson-arrow">→</div>
-    </a>
-
-  </div>
-
-  <!-- Phase 2 -->
-  <div class="phase-header">
-    <div class="phase-badge">Phase 2 — In Progress</div>
-    <div class="phase-title">The Configuration Layer</div>
-  </div>
-  <p class="phase-desc">The files that shape Claude's behavior. Why structure matters more than word count.</p>
-
-  <div class="lessons">
-
-    <a href="phase2-session1-claudemd.html" class="lesson-card available">
-      <div class="lesson-num num-done">7</div>
-      <div class="lesson-body">
-        <div class="lesson-title">CLAUDE.md Deep Dive</div>
-        <div class="lesson-desc">Boot context explained. Anatomy of a CLAUDE.md, token cost tradeoffs, the @-import system, and a decision tree for where information belongs.</div>
-        <div class="lesson-tags">
-          <span class="lesson-tag">boot context</span>
-          <span class="lesson-tag">token budget</span>
-          <span class="lesson-tag">@-imports</span>
-          <span class="lesson-tag">configuration</span>
-        </div>
-      </div>
-      <div class="lesson-status status-available">Available</div>
-      <div class="lesson-arrow">→</div>
-    </a>
-
-    <a href="phase2-session2-rules-files.html" class="lesson-card available">
-      <div class="lesson-num num-done">8</div>
-      <div class="lesson-body">
-        <div class="lesson-title">Rules Files</div>
-        <div class="lesson-desc">The specificity ladder from aspiration to hard constraint. The trigger-action pattern. Why rules in the middle of a file get ignored. Modular vs. monolithic design.</div>
-        <div class="lesson-tags">
-          <span class="lesson-tag">rules files</span>
-          <span class="lesson-tag">attention weight</span>
-          <span class="lesson-tag">trigger-action</span>
-          <span class="lesson-tag">modular config</span>
-        </div>
-      </div>
-      <div class="lesson-status status-available">Available</div>
-      <div class="lesson-arrow">→</div>
-    </a>
-
-    <div class="lesson-card" style="cursor:default; opacity:0.5;">
-      <div class="lesson-num num-locked">9</div>
-      <div class="lesson-body">
-        <div class="lesson-title">Supplements and Product Context</div>
-        <div class="lesson-desc">When to pre-load context vs. retrieve it on demand. How supplement files work and why they exist separately from CLAUDE.md.</div>
-        <div class="lesson-tags">
-          <span class="lesson-tag">supplements</span>
-          <span class="lesson-tag">product context</span>
-          <span class="lesson-tag">retrieval</span>
-        </div>
-      </div>
-      <div class="lesson-status status-soon">Coming Soon</div>
-      <div class="lesson-arrow" style="color:#333;">→</div>
-    </div>
-
-    <div class="lesson-card" style="cursor:default; opacity:0.5;">
-      <div class="lesson-num num-locked">10</div>
-      <div class="lesson-body">
-        <div class="lesson-title">Session Memory</div>
-        <div class="lesson-desc">Cross-session continuity without magic. What actually persists, what gets lost, and how to design for the reality of Claude's memory model.</div>
-        <div class="lesson-tags">
-          <span class="lesson-tag">session memory</span>
-          <span class="lesson-tag">continuity</span>
-          <span class="lesson-tag">handoff</span>
-        </div>
-      </div>
-      <div class="lesson-status status-soon">Coming Soon</div>
-      <div class="lesson-arrow" style="color:#333;">→</div>
-    </div>
-
-    <div class="lesson-card" style="cursor:default; opacity:0.5;">
-      <div class="lesson-num num-locked">11</div>
-      <div class="lesson-body">
-        <div class="lesson-title">The Knowledge Base</div>
-        <div class="lesson-desc">Semantic search and institutional memory. When to retrieve vs. when to pre-load, and how to design a KB that scales without bloating your context.</div>
-        <div class="lesson-tags">
-          <span class="lesson-tag">knowledge base</span>
-          <span class="lesson-tag">semantic search</span>
-          <span class="lesson-tag">retrieval</span>
-        </div>
-      </div>
-      <div class="lesson-status status-soon">Coming Soon</div>
-      <div class="lesson-arrow" style="color:#333;">→</div>
-    </div>
-
-    <div class="lesson-card" style="cursor:default; opacity:0.5;">
-      <div class="lesson-num num-locked">12</div>
-      <div class="lesson-body">
-        <div class="lesson-title">Prompt Engineering from the Inside</div>
-        <div class="lesson-desc">How Claude actually interprets your instructions. What bold and caps really do (less than you think). Why examples outperform rules.</div>
-        <div class="lesson-tags">
-          <span class="lesson-tag">prompting</span>
-          <span class="lesson-tag">instruction design</span>
-          <span class="lesson-tag">formatting</span>
-        </div>
-      </div>
-      <div class="lesson-status status-soon">Coming Soon</div>
-      <div class="lesson-arrow" style="color:#333;">→</div>
-    </div>
-
-  </div>
-
-  <!-- About -->
-  <div class="about">
-    <h2>About This Course</h2>
-    <p>Most Claude education falls into two buckets: "here's how to sign up" beginner content, or deep developer tutorials. The critical middle layer — how Claude actually processes information and why configuration choices matter — doesn't exist as a structured learning path.</p>
-    <p>This course fills that gap. Each lesson is interactive, self-contained, and designed to build a mental model you can actually use when working with AI. No coding required.</p>
-    <p>Built by <a href="https://nexhamcorp.com">NexHam</a> — software and AI consulting.</p>
-  </div>
-
-</div>
-
+<!-- FOOTER -->
 <footer>
-  <p>© 2026 NexHam · <a href="https://nexhamcorp.com">nexhamcorp.com</a></p>
+  <p>© 2026 <a href="https://nexhamcorp.com">NexHam</a> — Software &amp; AI Consulting</p>
+  <p><a href="https://nexhamcorp.com">nexhamcorp.com</a></p>
 </footer>
+
+<script>
+function handleSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById('email-input').value;
+  // TODO: wire to Listmonk or store backend when ready
+  // For now, record interest and show confirmation
+  document.getElementById('notify-form').style.display = 'none';
+  document.getElementById('form-success').style.display = 'block';
+  // Log for now — backend wired during store build
+  console.log('Email captured:', email);
+}
+
+function togglePhase(header) {
+  const lessons = header.nextElementSibling;
+  lessons.classList.toggle('open');
+}
+</script>
 
 </body>
 </html>
