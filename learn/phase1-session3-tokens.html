@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 1, Session 3: Tokens — The Real Currency</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #1a1a1a; color: #e0e0e0;
+    line-height: 1.6; padding: 20px; max-width: 900px; margin: 0 auto;
+  }
+  h1 { color: #C8956C; font-size: 28px; margin-bottom: 5px; }
+  h2 { color: #C8956C; font-size: 22px; margin: 30px 0 15px; }
+  h3 { color: #fff; font-size: 16px; margin: 16px 0 8px; }
+  .subtitle { color: #999; font-size: 14px; margin-bottom: 30px; }
+  .section { background: #242424; border-radius: 12px; padding: 24px; margin: 20px 0; }
+  .callout {
+    background: #2a2318; border-left: 4px solid #C8956C;
+    padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0;
+  }
+  .callout strong { color: #C8956C; }
+  .warning {
+    background: #2a1f1f; border-left: 4px solid #e74c3c;
+    padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0;
+  }
+  .warning strong { color: #e74c3c; }
+  .insight {
+    background: #1a2a20; border-left: 4px solid #4a9;
+    padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0;
+  }
+  .insight strong { color: #4a9; }
+  code { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #C8956C; }
+  table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+  th { text-align: left; padding: 10px 12px; background: #2a2a2a; color: #C8956C; font-size: 14px; }
+  td { padding: 10px 12px; border-bottom: 1px solid #333; font-size: 14px; }
+  tr:hover td { background: #2a2a2a; }
+  .analogy {
+    background: #1a2020; border: 1px solid #2a4040;
+    padding: 20px; border-radius: 10px; margin: 15px 0;
+  }
+  .analogy-label { color: #5ba; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+
+  /* Token Visualizer */
+  .token-demo {
+    background: #1a1a1a; border-radius: 10px; padding: 20px; margin: 20px 0;
+  }
+  .token-input {
+    width: 100%; background: #2a2a2a; border: 1px solid #444; border-radius: 8px;
+    padding: 12px; color: #e0e0e0; font-size: 15px; font-family: inherit;
+    resize: vertical; min-height: 80px; outline: none;
+  }
+  .token-input:focus { border-color: #C8956C; }
+  .token-display {
+    margin-top: 15px; min-height: 60px;
+    display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-start;
+  }
+  .token-chip {
+    padding: 4px 8px; border-radius: 5px; font-size: 14px;
+    font-family: 'Courier New', monospace; cursor: default;
+    transition: all 0.15s; border: 1px solid transparent;
+  }
+  .token-chip:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.2); }
+
+  /* token colors cycle */
+  .tc0 { background: #2d3a1a; color: #9c3; }
+  .tc1 { background: #1a2a3d; color: #5af; }
+  .tc2 { background: #3d1a2a; color: #f5a; }
+  .tc3 { background: #2a1a3d; color: #a5f; }
+  .tc4 { background: #3d2a1a; color: #C8956C; }
+  .tc5 { background: #1a3d2a; color: #5fa; }
+
+  .token-stats {
+    display: flex; gap: 20px; margin-top: 12px; flex-wrap: wrap;
+  }
+  .token-stat {
+    background: #2a2a2a; border-radius: 8px; padding: 10px 16px; text-align: center;
+  }
+  .token-stat .num { font-size: 24px; font-weight: bold; color: #C8956C; font-family: monospace; }
+  .token-stat .label { font-size: 12px; color: #777; }
+
+  .preset-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .preset-btn {
+    background: #333; border: 1px solid #555; color: #ddd;
+    padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    transition: all 0.2s;
+  }
+  .preset-btn:hover { background: #444; border-color: #C8956C; }
+
+  /* Cost Calculator */
+  .cost-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px; margin: 20px 0;
+  }
+  .cost-card {
+    background: #2a2a2a; border-radius: 10px; padding: 16px;
+    border: 1px solid #333; text-align: center;
+  }
+  .cost-card h4 { color: #C8956C; font-size: 14px; margin-bottom: 12px; }
+  .cost-num { font-size: 22px; font-weight: bold; color: #fff; font-family: monospace; }
+  .cost-sub { font-size: 12px; color: #666; margin-top: 4px; }
+  .cost-detail { font-size: 13px; color: #999; margin-top: 8px; }
+
+  /* Token composition bar */
+  .comp-bar {
+    height: 32px; background: #333; border-radius: 8px;
+    overflow: hidden; display: flex; margin: 8px 0;
+  }
+  .comp-seg {
+    height: 100%; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: bold; color: rgba(255,255,255,0.9);
+    transition: width 0.6s ease; overflow: hidden; white-space: nowrap;
+  }
+  .comp-legend { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0; }
+  .comp-legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .comp-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+  .range-container { margin: 15px 0; }
+  .range-label { display: flex; justify-content: space-between; font-size: 13px; color: #999; margin-bottom: 6px; }
+  input[type=range] {
+    width: 100%; accent-color: #C8956C;
+  }
+
+  .next-session {
+    background: #2a2518; border: 2px solid #C8956C; border-radius: 12px;
+    padding: 24px; margin: 30px 0; text-align: center;
+  }
+  .next-session h3 { color: #C8956C; }
+
+  .hidden-cost-item {
+    background: #2a2a2a; border-radius: 8px; padding: 12px 16px;
+    margin: 8px 0; display: flex; justify-content: space-between;
+    align-items: center; font-size: 14px;
+  }
+  .hidden-cost-item .tokens { color: #C8956C; font-family: monospace; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>Phase 1, Session 3</h1>
+<div class="subtitle">Tokens: The Real Currency — What Claude Actually Counts</div>
+
+<div class="section">
+  <h2>The Big Idea</h2>
+  <p>When people hear "200,000 token context window," they usually think in words or sentences. That's the wrong unit. Tokens are the actual unit Claude thinks in — and they don't map cleanly to words, sentences, or characters.</p>
+
+  <p style="margin-top: 12px;">Understanding tokens explains why some operations feel expensive, why code costs more than prose, why other languages burn through context faster, and why "context window" is not the same as "how much Claude can read."</p>
+
+  <div class="analogy">
+    <div class="analogy-label">Analogy</div>
+    <strong style="color:#fff">Tokens are like syllables, not words.</strong> "Cat" is one token. "Catastrophically" might be three. "Pneumonoultramicroscopicsilicovolcanoconiosis" is many more. The model doesn't see words — it sees these sub-word chunks. Some map to whole common words, some to word fragments, some to punctuation, some to whitespace. The vocabulary was chosen to be efficient for English, which means it's less efficient for other languages and code.
+  </div>
+</div>
+
+<div class="section">
+  <h2>See Tokens in Real Time</h2>
+  <p>Type anything below and watch it get split into tokens. Each color is a different token.</p>
+
+  <div class="token-demo">
+    <div class="preset-btns">
+      <button class="preset-btn" onclick="setPreset('simple')">Simple sentence</button>
+      <button class="preset-btn" onclick="setPreset('code')">Python code</button>
+      <button class="preset-btn" onclick="setPreset('technical')">Technical jargon</button>
+      <button class="preset-btn" onclick="setPreset('tweet')">A tweet</button>
+      <button class="preset-btn" onclick="setPreset('config')">Config file</button>
+      <button class="preset-btn" onclick="setPreset('emoji')">With emoji</button>
+    </div>
+
+    <textarea class="token-input" id="tokenInput" oninput="tokenize()" placeholder="Type something here to see how it gets tokenized...">The quick brown fox jumped over the lazy dog.</textarea>
+
+    <div class="token-display" id="tokenDisplay"></div>
+
+    <div class="token-stats">
+      <div class="token-stat">
+        <div class="num" id="tokenCount">0</div>
+        <div class="label">Tokens</div>
+      </div>
+      <div class="token-stat">
+        <div class="num" id="wordCount">0</div>
+        <div class="label">Words</div>
+      </div>
+      <div class="token-stat">
+        <div class="num" id="charCount">0</div>
+        <div class="label">Characters</div>
+      </div>
+      <div class="token-stat">
+        <div class="num" id="ratio">0.0</div>
+        <div class="label">Tokens per word</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Key rule of thumb:</strong> For everyday English prose, 1 token ≈ 0.75 words (or about 4 characters). So 200,000 tokens ≈ 150,000 words ≈ about 500 pages of a novel. But this breaks down fast with code, special characters, and non-English text.
+  </div>
+</div>
+
+<div class="section">
+  <h2>The Math: What 200K Tokens Actually Gets You</h2>
+
+  <table>
+    <tr><th>Content Type</th><th>Tokens per unit</th><th>What fits in 200K tokens</th></tr>
+    <tr><td>Average English word</td><td>~1.3 tokens</td><td>~150,000 words</td></tr>
+    <tr><td>Novel page (250 words)</td><td>~330 tokens</td><td>~600 pages (a long novel)</td></tr>
+    <tr><td>This lesson (full text)</td><td>~2,500 tokens</td><td>80 lessons like this one</td></tr>
+    <tr><td>Tweet (280 chars)</td><td>~80 tokens</td><td>~2,500 tweets</td></tr>
+    <tr><td>Python function (20 lines)</td><td>~150-250 tokens</td><td>~1,000 small functions</td></tr>
+    <tr><td>JSON API response (large)</td><td>~2,000-5,000 tokens</td><td>40-100 API calls</td></tr>
+    <tr><td>PDF page (dense text)</td><td>~400-600 tokens</td><td>~350-500 pages</td></tr>
+    <tr><td>Spanish/French text</td><td>~1.5-2x English</td><td>Roughly half the English capacity</td></tr>
+    <tr><td>Chinese/Japanese/Arabic</td><td>~2-4x English</td><td>A quarter or less of English capacity</td></tr>
+  </table>
+
+  <div class="warning">
+    <strong>The non-English problem:</strong> Claude's tokenizer was optimized for English. A paragraph in Japanese might cost 3-4x the tokens of the same meaning in English. If you're building for international users, this has real cost and context implications.
+  </div>
+</div>
+
+<div class="section">
+  <h2>Why Code Costs More Than It Looks</h2>
+
+  <p>Code is tokenized differently from prose. Variable names, symbols, whitespace, and syntax all fragment into more tokens than equivalent English text.</p>
+
+  <table>
+    <tr><th>Text Type</th><th>Example</th><th>Tokens</th></tr>
+    <tr><td>Plain English</td><td>"Get all users from the database"</td><td>~8</td></tr>
+    <tr><td>SQL equivalent</td><td><code>SELECT * FROM users WHERE active = 1;</code></td><td>~15</td></tr>
+    <tr><td>Python equivalent</td><td><code>users = db.query(User).filter(User.active==1).all()</code></td><td>~22</td></tr>
+    <tr><td>JSON config (indented)</td><td>4-space indented JSON object, 10 fields</td><td>~60-100</td></tr>
+    <tr><td>Markdown with headers</td><td># Heading / **bold** / - list items</td><td>~10-15% overhead vs plain text</td></tr>
+  </table>
+
+  <div class="insight">
+    <strong>Practical takeaway:</strong> When Claude reads a large file (code, JSON config, tool output), that read goes into the context window as tokens. A 500-line Python file might consume 8,000-12,000 tokens. If Claude reads three files in a session, you've burned 25,000-35,000 tokens just on file reads before any thinking happens.
+  </div>
+</div>
+
+<div class="section">
+  <h2>The Hidden Token Costs</h2>
+  <p>Most people only think about message length. The real costs are often invisible.</p>
+
+  <div class="hidden-cost-item">
+    <span>Every tool call result (file read, search result, API response)</span>
+    <span class="tokens">500 - 5,000 tokens each</span>
+  </div>
+  <div class="hidden-cost-item">
+    <span>Claude's thinking output (extended thinking mode)</span>
+    <span class="tokens">1,000 - 20,000 tokens per response</span>
+  </div>
+  <div class="hidden-cost-item">
+    <span>System prompt (Anthropic's baseline)</span>
+    <span class="tokens">~4,000 tokens every turn</span>
+  </div>
+  <div class="hidden-cost-item">
+    <span>Your CLAUDE.md + rules files</span>
+    <span class="tokens">~6,000-10,000 tokens every turn</span>
+  </div>
+  <div class="hidden-cost-item">
+    <span>Entire conversation history (re-read every turn)</span>
+    <span class="tokens">grows by 1,000-5,000 per exchange</span>
+  </div>
+  <div class="hidden-cost-item">
+    <span>Large image attached to a message</span>
+    <span class="tokens">~1,000-1,700 tokens per image</span>
+  </div>
+  <div class="hidden-cost-item">
+    <span>Screenshot from computer-use tool</span>
+    <span class="tokens">~1,000-2,000 tokens per screenshot</span>
+  </div>
+
+  <div class="callout" style="margin-top: 20px;">
+    <strong>The compounding effect:</strong> Every turn in a conversation, Claude re-reads the ENTIRE context window — system prompt, CLAUDE.md, every previous message, every tool result. It's not reading just your latest message. It reads everything, every time. This is why longer sessions cost exponentially more tokens than short ones.
+  </div>
+</div>
+
+<div class="section">
+  <h2>Visualize Your Session Budget</h2>
+  <p>Use the slider to set how many tools calls and messages are in your session. See where the tokens actually go.</p>
+
+  <div class="range-container">
+    <div class="range-label">
+      <span>Session length: <strong id="msgLabel" style="color:#C8956C;">20 exchanges</strong></span>
+      <span>~1 hour of work</span>
+    </div>
+    <input type="range" min="5" max="80" value="20" oninput="updateBudget(this.value)">
+  </div>
+
+  <div class="comp-bar" id="budgetBar">
+    <div class="comp-seg" style="background:#2d5a2d;" id="seg-system">System</div>
+    <div class="comp-seg" style="background:#2d2d5a;" id="seg-claude">CLAUDE.md</div>
+    <div class="comp-seg" style="background:#5a3d1a;" id="seg-tools">Tool results</div>
+    <div class="comp-seg" style="background:#2d5a5a;" id="seg-conv">Conversation</div>
+    <div class="comp-seg" style="background:#3d2d5a;" id="seg-free">Free space</div>
+  </div>
+
+  <div class="comp-legend">
+    <div class="comp-legend-item"><div class="comp-dot" style="background:#2d5a2d"></div> System prompt (~4K)</div>
+    <div class="comp-legend-item"><div class="comp-dot" style="background:#2d2d5a"></div> CLAUDE.md + rules (~8K)</div>
+    <div class="comp-legend-item"><div class="comp-dot" style="background:#5a3d1a"></div> Tool call results</div>
+    <div class="comp-legend-item"><div class="comp-dot" style="background:#2d5a5a"></div> Conversation history</div>
+    <div class="comp-legend-item"><div class="comp-dot" style="background:#3d2d5a"></div> Free for thinking</div>
+  </div>
+
+  <div class="cost-grid" style="margin-top: 15px;">
+    <div class="cost-card">
+      <h4>Tokens Used</h4>
+      <div class="cost-num" id="budgetUsed">24,000</div>
+      <div class="cost-sub">of 200,000</div>
+    </div>
+    <div class="cost-card">
+      <h4>% Window Full</h4>
+      <div class="cost-num" id="budgetPct">12%</div>
+      <div class="cost-sub">— <span id="budgetStatus">Fresh. Claude's at full capacity.</span></div>
+    </div>
+    <div class="cost-card">
+      <h4>Free Thinking Space</h4>
+      <div class="cost-num" id="budgetFree">176K</div>
+      <div class="cost-sub">tokens available</div>
+    </div>
+    <div class="cost-card">
+      <h4>Compaction Risk</h4>
+      <div class="cost-num" id="budgetRisk" style="color:#4a9;">Low</div>
+      <div class="cost-sub">at current session length</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Tokens = Money (What It Actually Costs)</h2>
+  <p>Anthropic charges by token on the API. The consumer plans bundle tokens into monthly limits. Either way, tokens are the unit.</p>
+
+  <table>
+    <tr><th>Model</th><th>Input tokens</th><th>Output tokens</th><th>When to use</th></tr>
+    <tr><td><strong style="color:#C8956C;">Claude Opus 4.6</strong></td><td>$15 / 1M tokens</td><td>$75 / 1M tokens</td><td>Complex reasoning, critical decisions</td></tr>
+    <tr><td><strong>Claude Sonnet 4.6</strong></td><td>$3 / 1M tokens</td><td>$15 / 1M tokens</td><td>Most tasks — the smart default</td></tr>
+    <tr><td>Claude Haiku 4.5</td><td>$0.80 / 1M tokens</td><td>$4 / 1M tokens</td><td>High-volume, simple tasks</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>The math that matters:</strong> A single long Opus session with lots of tool calls (say, 150K tokens in + 20K tokens out) costs about $3.75 in API terms. Multiply that by multiple sessions per day and it adds up fast. This is why "Sonnet for everything, Opus only when you actually need it" is the right operating principle — not cheapness, but efficiency. Sonnet at 20% of Opus cost produces 80-90% of the quality for most tasks.
+  </div>
+
+  <h3>Output tokens cost more than input — here's why</h3>
+  <p style="color: #bbb; font-size: 14px;">When Claude generates output, it's doing computation for every single token — predicting the next most likely token, one at a time. Reading input is comparatively cheap (one forward pass through the model). Writing output requires generating tokens sequentially, which is why a long response costs significantly more than a long input to read.</p>
+
+  <div class="insight">
+    <strong>This explains "be concise" at a mechanical level.</strong> If you ask Claude to "explain everything in detail," that output is 5-10x more expensive than a concise answer. Not just slower to read — more expensive to generate. For your own use, this matters less. For anyone building with the API at scale, it's critical.
+  </div>
+</div>
+
+<div class="section">
+  <h2>Token Conservation in Practice</h2>
+  <p>With this mental model, conservation strategies make intuitive sense:</p>
+
+  <table>
+    <tr><th>Strategy</th><th>Why It Works (Token Reason)</th><th>Savings</th></tr>
+    <tr>
+      <td>Use Sonnet instead of Opus</td>
+      <td>Same token count, 80% cost reduction. Doesn't reduce tokens used, but reduces cost per token.</td>
+      <td>$$$</td>
+    </tr>
+    <tr>
+      <td>KB retrieval vs. boot-context loading</td>
+      <td>search_docs returns ~200-500 tokens of targeted info. Loading the entire doc into CLAUDE.md would cost that every single turn.</td>
+      <td>High</td>
+    </tr>
+    <tr>
+      <td>Separate sessions for separate roles</td>
+      <td>Each session has its own clean context. No cross-contamination. No need to re-explain role A to session B.</td>
+      <td>Medium</td>
+    </tr>
+    <tr>
+      <td>Short, specific messages</td>
+      <td>Input is cheap, but also sets up a longer response. Vague prompts produce longer, less useful responses, costing more output tokens.</td>
+      <td>Low-Medium</td>
+    </tr>
+    <tr>
+      <td>Read specific file sections, not whole files</td>
+      <td>Reading lines 200-250 of a file costs ~500 tokens. Reading the whole file might cost 8,000.</td>
+      <td>High (for large files)</td>
+    </tr>
+    <tr>
+      <td>Start fresh sessions for new topics</td>
+      <td>A new session has minimal conversation history. Continuing in an old session means Claude re-reads everything from 3 hours ago every turn.</td>
+      <td>High (late sessions)</td>
+    </tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>The Number That Actually Matters</h2>
+
+  <p>People obsess over context window size. The number that actually determines quality is:</p>
+
+  <div style="text-align: center; padding: 30px; background: #1a1a1a; border-radius: 12px; margin: 20px 0;">
+    <div style="font-size: 18px; color: #999; margin-bottom: 10px;">Available thinking space</div>
+    <div style="font-size: 42px; font-weight: bold; color: #C8956C; font-family: monospace;">=</div>
+    <div style="font-size: 18px; margin: 10px 0;">
+      <span style="color: #C8956C;">200,000</span>
+      <span style="color: #666;"> (total window)</span>
+    </div>
+    <div style="font-size: 32px; color: #666;">−</div>
+    <div style="font-size: 18px; margin: 10px 0;">
+      <span style="color: #e55;">System prompt</span> +
+      <span style="color: #77f;">CLAUDE.md</span> +
+      <span style="color: #f7a;">supplements</span> +
+      <span style="color: #5af;">conversation history</span> +
+      <span style="color: #fa5;">tool results</span>
+    </div>
+    <div style="font-size: 32px; color: #666;">=</div>
+    <div style="font-size: 42px; font-weight: bold; color: #4a9; font-family: monospace;" id="thinkingSpace">~176K tokens</div>
+    <div style="color: #666; font-size: 14px; margin-top: 8px;">at the start of a fresh session</div>
+  </div>
+
+  <p>Everything you do to reduce the non-thinking parts is directly invested into Claude's ability to reason. Lean CLAUDE.md, targeted retrieval, short sessions — these aren't style preferences. They're how you buy yourself more thinking space per dollar.</p>
+</div>
+
+<div class="next-session">
+  <h3>Next: Phase 1, Session 4</h3>
+  <p style="margin-top:10px; color:#ccc">Why Claude "Forgets" — Not a bug. A precise architectural reality. The three types of forgetting, what compaction really does, and what you can do about each one.</p>
+  <p style="margin-top:5px; color:#999; font-size:13px">We'll look at what actually survives compaction and what doesn't — and why the answer might surprise you.</p>
+</div>
+
+<script>
+// Simple approximate tokenizer (BPE simulation — not exact, but realistic)
+function approximateTokens(text) {
+  if (!text) return [];
+  const tokens = [];
+
+  // Rough BPE-like tokenization for English
+  const pattern = /(\s+|[.,!?;:'"()\[\]{}\-\/\\@#$%^&*+=<>|~`]|\d+|[A-Z][a-z]+|[a-z]+|[A-Z]+)/g;
+  let remaining = text;
+  let match;
+  let colorIdx = 0;
+
+  // Reset regex
+  const regex = /(\n+|\s+|[.,!?;:'"()\[\]{}\-\/\\@#$%^&*+=<>|~`]+|\d+|[A-Z]?[a-z]+(?:[A-Z][a-z]+)*|[A-Z]+|[^\x00-\x7F]+|.)/g;
+
+  let pieces = [];
+  let m;
+  while ((m = regex.exec(text)) !== null) {
+    pieces.push(m[0]);
+  }
+
+  // Group small pieces and simulate subword tokenization
+  let result = [];
+  for (let i = 0; i < pieces.length; i++) {
+    let p = pieces[i];
+    if (p.length === 0) continue;
+
+    // Long words get split into sub-tokens
+    if (/^[a-zA-Z]+$/.test(p) && p.length > 8) {
+      // Split roughly at syllable-ish boundaries
+      let mid = Math.ceil(p.length / 2);
+      result.push(p.slice(0, mid));
+      result.push(p.slice(mid));
+    } else {
+      result.push(p);
+    }
+  }
+
+  return result.filter(t => t.length > 0);
+}
+
+function tokenize() {
+  const text = document.getElementById('tokenInput').value;
+  const tokens = approximateTokens(text);
+  const display = document.getElementById('tokenDisplay');
+  const colors = ['tc0','tc1','tc2','tc3','tc4','tc5'];
+
+  display.innerHTML = '';
+  tokens.forEach((tok, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'token-chip ' + colors[i % colors.length];
+    // Show whitespace visibly
+    chip.textContent = tok.replace(/\n/g, '↵').replace(/\t/g, '→');
+    chip.title = `Token ${i+1}: "${tok}" (${tok.length} chars)`;
+    display.appendChild(chip);
+  });
+
+  const words = text.trim().split(/\s+/).filter(w => w.length > 0);
+  document.getElementById('tokenCount').textContent = tokens.length;
+  document.getElementById('wordCount').textContent = words.length;
+  document.getElementById('charCount').textContent = text.length;
+  document.getElementById('ratio').textContent = words.length > 0 ? (tokens.length / words.length).toFixed(1) : '0.0';
+}
+
+const presets = {
+  simple: "The quick brown fox jumped over the lazy dog.",
+  code: "def get_active_users(db):\n    return db.query(User).filter(\n        User.active == True,\n        User.deleted_at == None\n    ).order_by(User.created_at.desc()).all()",
+  technical: "The asynchronous microservices architecture utilizes containerized deployments with Kubernetes orchestration and distributed tracing via OpenTelemetry.",
+  tweet: "Just shipped v2.0 of our health tracking app — completely FREE now. Zero paywalls, zero subscriptions. Build in public, give back to the community. 🚀",
+  config: '{\n  "name": "my-service",\n  "version": "2.1.0",\n  "dependencies": {\n    "express": "^4.18.0",\n    "dotenv": "^16.0.0"\n  },\n  "scripts": {\n    "start": "node index.js",\n    "dev": "nodemon index.js"\n  }\n}',
+  emoji: "Love this! 🔥 The AI deployment worked perfectly 🤖✅ — zero humans needed in the loop 😅 Shipped at 2am like a proper engineer 🚀"
+};
+
+function setPreset(key) {
+  document.getElementById('tokenInput').value = presets[key];
+  tokenize();
+}
+
+// Budget calculator
+function updateBudget(exchanges) {
+  exchanges = parseInt(exchanges);
+  document.getElementById('msgLabel').textContent = exchanges + ' exchanges';
+
+  const SYSTEM = 4000;
+  const CLAUDE_MD = 8000;
+  const TOOL_PER_EXCHANGE = 1500; // avg tool results per exchange
+  const CONV_PER_EXCHANGE = 600;  // avg tokens per exchange (in+out)
+  const TOTAL = 200000;
+
+  const toolTokens = exchanges * TOOL_PER_EXCHANGE;
+  const convTokens = exchanges * CONV_PER_EXCHANGE;
+  const fixed = SYSTEM + CLAUDE_MD;
+  const used = fixed + toolTokens + convTokens;
+  const free = Math.max(0, TOTAL - used);
+  const pct = Math.round(used / TOTAL * 100);
+
+  document.getElementById('budgetUsed').textContent = (used/1000).toFixed(0) + 'K';
+  document.getElementById('budgetPct').textContent = pct + '%';
+  document.getElementById('budgetFree').textContent = (free/1000).toFixed(0) + 'K';
+  document.getElementById('thinkingSpace').textContent = '~' + (free/1000).toFixed(0) + 'K tokens';
+
+  let status, risk, riskColor;
+  if (pct < 30) { status = 'Fresh. Claude at full capacity.'; risk = 'Low'; riskColor = '#4a9'; }
+  else if (pct < 55) { status = 'Getting busy. Still good.'; risk = 'Low'; riskColor = '#4a9'; }
+  else if (pct < 75) { status = 'Noticing some drift in rule-following.'; risk = 'Medium'; riskColor = '#ea5'; }
+  else if (pct < 90) { status = 'Quality degrading. Consider a fresh session.'; risk = 'High'; riskColor = '#e74'; }
+  else { status = 'Compaction imminent or occurring.'; risk = 'Critical'; riskColor = '#e44'; }
+
+  document.getElementById('budgetStatus').textContent = status;
+  document.getElementById('budgetRisk').textContent = risk;
+  document.getElementById('budgetRisk').style.color = riskColor;
+
+  // Update bar
+  const segs = [
+    { id: 'seg-system', pct: SYSTEM/TOTAL*100 },
+    { id: 'seg-claude', pct: CLAUDE_MD/TOTAL*100 },
+    { id: 'seg-tools', pct: toolTokens/TOTAL*100 },
+    { id: 'seg-conv', pct: convTokens/TOTAL*100 },
+    { id: 'seg-free', pct: free/TOTAL*100 },
+  ];
+  segs.forEach(s => {
+    const el = document.getElementById(s.id);
+    el.style.width = s.pct + '%';
+    el.textContent = s.pct > 4 ? el.textContent.split(' ')[0] : '';
+  });
+}
+
+// Init
+tokenize();
+updateBudget(20);
+</script>
+</body>
+</html>

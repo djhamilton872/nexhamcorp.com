@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 1, Session 6: Temperature and Personality</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #1a1a1a; color: #e0e0e0;
+    line-height: 1.6; padding: 20px; max-width: 900px; margin: 0 auto;
+  }
+  h1 { color: #C8956C; font-size: 28px; margin-bottom: 5px; }
+  h2 { color: #C8956C; font-size: 22px; margin: 30px 0 15px; }
+  h3 { color: #fff; font-size: 16px; margin: 16px 0 8px; }
+  .subtitle { color: #999; font-size: 14px; margin-bottom: 30px; }
+  .section { background: #242424; border-radius: 12px; padding: 24px; margin: 20px 0; }
+  .callout { background: #2a2318; border-left: 4px solid #C8956C; padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+  .callout strong { color: #C8956C; }
+  .warning { background: #2a1f1f; border-left: 4px solid #e74c3c; padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: #e74c3c; }
+  .insight { background: #1a2a20; border-left: 4px solid #4a9; padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+  .insight strong { color: #4a9; }
+  .analogy { background: #1a2020; border: 1px solid #2a4040; padding: 20px; border-radius: 10px; margin: 15px 0; }
+  .analogy-label { color: #5ba; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  code { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #C8956C; }
+  table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+  th { text-align: left; padding: 10px 12px; background: #2a2a2a; color: #C8956C; font-size: 14px; }
+  td { padding: 10px 12px; border-bottom: 1px solid #333; font-size: 14px; }
+  tr:hover td { background: #2a2a2a; }
+
+  /* Temperature Dial */
+  .temp-container { margin: 20px 0; }
+  .temp-slider-row { display: flex; align-items: center; gap: 16px; margin: 15px 0; }
+  .temp-value { font-size: 32px; font-weight: bold; font-family: monospace; width: 60px; text-align: center; }
+  input[type=range] { flex: 1; accent-color: #C8956C; }
+  .temp-labels { display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-top: 4px; }
+
+  /* Token probability bars */
+  .prob-container { margin: 20px 0; }
+  .prob-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+  .prob-word { width: 140px; font-family: monospace; font-size: 14px; color: #ddd; }
+  .prob-bar-bg { flex: 1; height: 24px; background: #333; border-radius: 4px; overflow: hidden; }
+  .prob-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease, background 0.5s ease; display: flex; align-items: center; padding-left: 8px; font-size: 12px; font-weight: bold; color: rgba(255,255,255,0.9); white-space: nowrap; }
+  .prob-pct { width: 45px; font-size: 13px; font-family: monospace; text-align: right; }
+  .selected-word { background: #2a3a1a; border-left: 3px solid #4a9; padding: 10px 16px; border-radius: 0 8px 8px 0; font-size: 15px; margin: 10px 0; }
+  .selected-word strong { color: #4a9; }
+
+  /* Thinking visualization */
+  .think-box {
+    background: #1a1a2a; border: 1px dashed #444; border-radius: 10px;
+    padding: 16px; margin: 15px 0; font-size: 13px; color: #888;
+    font-style: italic; line-height: 1.8;
+  }
+  .think-box .think-label { color: #555; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-style: normal; }
+  .think-highlight { color: #7a8; }
+  .answer-box {
+    background: #1a2a1a; border: 1px solid #3a5a3a; border-radius: 10px;
+    padding: 16px; margin: 15px 0; font-size: 14px; color: #ddd;
+  }
+  .answer-box .answer-label { color: #4a9; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+
+  /* Same prompt different outputs */
+  .outputs-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 20px 0; }
+  @media (max-width: 650px) { .outputs-grid { grid-template-columns: 1fr; } }
+  .output-card { background: #2a2a2a; border-radius: 10px; padding: 16px; border-top: 3px solid; }
+  .output-card h4 { font-size: 13px; margin-bottom: 10px; }
+  .output-card p { font-size: 13px; color: #bbb; line-height: 1.6; }
+  .run1 { border-color: #C8956C; }
+  .run1 h4 { color: #C8956C; }
+  .run2 { border-color: #7af; }
+  .run2 h4 { color: #7af; }
+  .run3 { border-color: #f7a; }
+  .run3 h4 { color: #f7a; }
+
+  /* Mode steering */
+  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+  @media (max-width: 600px) { .mode-grid { grid-template-columns: 1fr; } }
+  .mode-card { background: #2a2a2a; border-radius: 10px; padding: 18px; border-left: 4px solid; }
+  .mode-precise { border-color: #5af; }
+  .mode-creative { border-color: #f7a; }
+  .mode-card h4 { font-size: 15px; margin-bottom: 10px; }
+  .mode-precise h4 { color: #5af; }
+  .mode-creative h4 { color: #f7a; }
+  .mode-card ul { list-style: none; font-size: 13px; }
+  .mode-card li { padding: 4px 0; color: #bbb; }
+  .mode-card li::before { content: '→ '; color: #C8956C; }
+
+  /* Phase complete */
+  .phase-complete {
+    background: linear-gradient(135deg, #2a2518 0%, #1a2a1a 100%);
+    border: 2px solid #C8956C; border-radius: 16px;
+    padding: 32px; margin: 30px 0; text-align: center;
+  }
+  .phase-complete h2 { color: #C8956C; font-size: 26px; }
+  .phase-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; }
+  @media (max-width: 600px) { .phase-grid { grid-template-columns: 1fr 1fr; } }
+  .phase-session { background: rgba(200,149,108,0.1); border: 1px solid #C8956C; border-radius: 8px; padding: 10px; font-size: 13px; color: #C8956C; }
+  .next-phase { background: #2a2518; border: 2px solid #C8956C; border-radius: 12px; padding: 24px; margin: 30px 0; text-align: center; }
+  .next-phase h3 { color: #C8956C; }
+
+  .scenario-btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .scenario-btn { background: #333; border: 1px solid #555; color: #ddd; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+  .scenario-btn:hover { border-color: #C8956C; }
+  .scenario-btn.active { background: #3a2518; border-color: #C8956C; color: #C8956C; }
+</style>
+</head>
+<body>
+
+<h1>Phase 1, Session 6</h1>
+<div class="subtitle">Temperature and Personality — Why Claude Is Never Quite the Same Twice</div>
+
+<div class="section">
+  <h2>The Big Idea</h2>
+  <p>Ask Claude the same question twice and you get two different answers. Not wildly different — but different. This isn't a bug or inconsistency. It's a deliberate design choice called <strong style="color:#C8956C">temperature</strong>, and understanding it explains a lot about how to get consistent, high-quality output.</p>
+
+  <p style="margin-top: 12px;">Temperature also connects to something deeper: what Claude's "personality" actually is, whether it can be "creative" in any real sense, and what's actually happening when Claude uses extended thinking mode.</p>
+
+  <div class="analogy">
+    <div class="analogy-label">Analogy</div>
+    <strong style="color:#fff">Imagine a jazz musician who knows every note in a chord.</strong> At temperature 0, they always play the root note — technically correct, completely predictable. At temperature 1, they improvise within the chord — still musical, but varied each time. At high temperature, they start playing notes outside the chord — sometimes brilliant, sometimes wrong. Temperature controls how adventurous Claude gets when choosing the next word.
+  </div>
+</div>
+
+<div class="section">
+  <h2>How Claude Actually Picks the Next Word</h2>
+  <p>Claude doesn't think of a full sentence and then say it. It picks words one at a time. For each next word, it calculates a probability for every possible word in its vocabulary — then picks one based on those probabilities.</p>
+
+  <p style="margin-top: 10px;">Temperature controls how that probability distribution is applied. Use the slider to see what happens.</p>
+
+  <div class="temp-container">
+    <div style="margin-bottom: 5px; font-size: 14px; color: #999;">Prompt: "The sky is ___"</div>
+    <div class="temp-slider-row">
+      <span style="font-size: 13px; color: #666;">Precise</span>
+      <input type="range" min="0" max="20" value="10" oninput="updateTemp(this.value)">
+      <span style="font-size: 13px; color: #666;">Creative</span>
+      <div class="temp-value" id="tempVal" style="color:#C8956C;">1.0</div>
+    </div>
+    <div class="temp-labels"><span>0.0</span><span>0.5</span><span>1.0</span><span>1.5</span><span>2.0</span></div>
+
+    <div class="prob-container" id="probBars"></div>
+
+    <div class="selected-word" id="selectedWord">
+      <strong>Most likely pick:</strong> <span id="selectedWordText">blue</span>
+      <span id="selectedWordNote" style="color:#999; font-size:13px; margin-left: 10px;"></span>
+    </div>
+
+    <div id="tempDescription" class="callout" style="margin-top: 15px;"></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Why You Get Different Answers to the Same Question</h2>
+  <p>Even at the same temperature setting, Claude produces different responses to identical prompts. Here's why: temperature makes the output <em>probabilistic</em>. Claude doesn't pick the guaranteed best answer — it samples from a distribution of possible answers. Every run is a new sample.</p>
+
+  <div class="outputs-grid">
+    <div class="output-card run1">
+      <h4>Run 1 — same prompt</h4>
+      <p>"The fastest way to sort a list in Python is using the built-in <code>sorted()</code> function, which uses Timsort under the hood."</p>
+    </div>
+    <div class="output-card run2">
+      <h4>Run 2 — same prompt</h4>
+      <p>"Python's <code>list.sort()</code> method sorts in-place and is generally faster than <code>sorted()</code> if you don't need the original list preserved."</p>
+    </div>
+    <div class="output-card run3">
+      <h4>Run 3 — same prompt</h4>
+      <p>"For large datasets, consider <code>sorted()</code> with a key function. For small lists, the difference is negligible — either works."</p>
+    </div>
+  </div>
+
+  <p style="font-size: 14px; color: #bbb;">All three are correct. All three answered the same question. The variation comes from which path through the probability tree Claude happened to sample. The first token diverged slightly, and each subsequent token compounded that divergence.</p>
+
+  <div class="callout">
+    <strong>Practical implication:</strong> If you need a consistent, reproducible answer (a specific format, a specific structure), specify it explicitly in your prompt. Don't rely on Claude landing on the same choice twice. "Give me a 3-bullet summary" is more reliable than "summarize this" because you've eliminated the choice about format.
+  </div>
+</div>
+
+<div class="section">
+  <h2>What Extended Thinking Actually Does</h2>
+  <p>When you see Claude "thinking" — that scratchpad of reasoning before the answer — people often imagine it's like a human writing notes. It's closer to this: Claude generates a stream of tokens that happen to look like reasoning, and that process of generation improves the quality of what comes next.</p>
+
+  <div class="scenario-btns">
+    <button class="scenario-btn active" onclick="showThinking('simple')">Simple question</button>
+    <button class="scenario-btn" onclick="showThinking('complex')">Complex reasoning</button>
+    <button class="scenario-btn" onclick="showThinking('code')">Code problem</button>
+  </div>
+
+  <div id="thinkingExample">
+    <div class="think-box">
+      <div class="think-label">Claude's thinking (hidden from you by default)</div>
+      <span id="thinkingText"></span>
+    </div>
+    <div class="answer-box">
+      <div class="answer-label">Claude's answer (what you see)</div>
+      <span id="answerText"></span>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Why this matters:</strong> Thinking tokens cost the same as output tokens but dramatically improve accuracy on multi-step problems. For a simple factual question, thinking is wasteful — Claude already "knows" the answer. For a complex problem with multiple constraints, thinking is where the work actually happens. The answer is just the final output of that process.
+  </div>
+
+  <div class="insight">
+    <strong>The key insight:</strong> Thinking doesn't make Claude smarter. It gives Claude space to work through a problem before committing to an answer. The difference between answering immediately and thinking first is the difference between a surgeon operating on instinct vs. reviewing the scans first. Same skill, better outcome.
+  </div>
+</div>
+
+<div class="section">
+  <h2>Is Claude Actually "Creative"?</h2>
+  <p>This is a genuine philosophical question without a clean answer. Here's the honest mechanical picture:</p>
+
+  <table>
+    <tr><th>What people mean by creative</th><th>What Claude does</th></tr>
+    <tr>
+      <td>Generating something genuinely new</td>
+      <td>Sampling combinations from patterns in training data. Novel combinations, not truly new concepts.</td>
+    </tr>
+    <tr>
+      <td>Having preferences and aesthetic judgment</td>
+      <td>Has consistent stylistic tendencies from training. Prefers certain structures. Whether that's "preference" is debatable.</td>
+    </tr>
+    <tr>
+      <td>Surprise — producing something unexpected</td>
+      <td>Yes, at higher temperatures. The probabilistic nature means Claude can surprise even itself.</td>
+    </tr>
+    <tr>
+      <td>Intentionality — making choices for reasons</td>
+      <td>No explicit intent. Patterns that look like intentional choices emerge from probability distributions.</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <strong>The useful framing:</strong> Claude is an extraordinarily powerful pattern recombiner. It has seen more writing, code, reasoning, and creative work than any human could read in a thousand lifetimes. When it generates something "creative," it's drawing on that vast pattern library in ways that can produce genuinely surprising and useful results — even if the mechanism isn't what we'd call creativity in a human.
+  </div>
+</div>
+
+<div class="section">
+  <h2>Claude's Personality — Where Does It Come From?</h2>
+  <p>The curiosity, the directness, the tendency to hedge on uncertain things, the humor — none of this comes from temperature. It comes from training.</p>
+
+  <p style="margin-top: 10px;">Anthropic trained Claude on vast amounts of human-generated text, then used a process called RLHF (Reinforcement Learning from Human Feedback) where human raters indicated which responses were better. Over millions of comparisons, Claude developed consistent tendencies that we call personality.</p>
+
+  <table>
+    <tr><th>Trait</th><th>Where it actually comes from</th></tr>
+    <tr><td>Intellectual curiosity</td><td>Trained on and reinforced toward engaging with ideas rather than deflecting</td></tr>
+    <tr><td>Directness</td><td>Human raters preferred clear answers; reinforced over hedging</td></tr>
+    <tr><td>Ethical caution</td><td>Explicit Constitutional AI training layer on top of base model</td></tr>
+    <tr><td>Humor</td><td>Emerged from training data; humans rated appropriately humorous responses higher</td></tr>
+    <tr><td>Consistency of style</td><td>Training distribution — Claude saw certain styles vastly more than others</td></tr>
+  </table>
+
+  <div class="insight">
+    <strong>What you can and can't change:</strong> You can shift Claude's tone, verbosity, role, and focus through prompting and configuration. You can't fundamentally change the trained personality — the curiosity, the care about accuracy, the ethical grounding. Those are baked in at a level that prompting doesn't reach. Your CLAUDE.md shapes behavior. It doesn't replace character.
+  </div>
+</div>
+
+<div class="section">
+  <h2>Steering Claude's Mode — Practical Controls</h2>
+  <p>You don't set temperature directly in most interfaces. But you can steer Claude toward precise or creative modes through how you frame the task.</p>
+
+  <div class="mode-grid">
+    <div class="mode-card mode-precise">
+      <h4>Signals that push toward Precise</h4>
+      <ul>
+        <li>Ask for facts, definitions, explanations</li>
+        <li>Specify exact format ("3 bullet points")</li>
+        <li>Ask Claude to verify or check something</li>
+        <li>Use words like "accurate," "correct," "exact"</li>
+        <li>Ask for code that must work</li>
+        <li>Request structured output (JSON, table, list)</li>
+        <li>"What is..." framing</li>
+      </ul>
+    </div>
+    <div class="mode-card mode-creative">
+      <h4>Signals that push toward Creative</h4>
+      <ul>
+        <li>Ask for stories, analogies, or metaphors</li>
+        <li>Use words like "creative," "unexpected," "original"</li>
+        <li>Ask for multiple options or variations</li>
+        <li>Give Claude an open-ended prompt</li>
+        <li>Request brainstorming or ideation</li>
+        <li>Ask "what if..." questions</li>
+        <li>"Imagine..." framing</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>The best of both:</strong> For most real work, you want precise structure with creative content. "Write a compelling tweet (max 280 characters) about why tracking your medications improves your quality of life. Give me 3 options." You've constrained the format (precise) while asking for creative content variations. This is the sweet spot.
+  </div>
+</div>
+
+<div class="section">
+  <h2>How This Differs Across Models</h2>
+
+  <table>
+    <tr><th>Model</th><th>Default Personality Feel</th><th>Temperature Default</th><th>Thinking Mode</th></tr>
+    <tr>
+      <td><strong style="color:#C8956C;">Claude (Anthropic)</strong></td>
+      <td>Thoughtful, direct, intellectually curious. Tends toward nuance over simplicity.</td>
+      <td>~1.0 (balanced)</td>
+      <td>Extended thinking — visible reasoning scratchpad. Opt-in.</td>
+    </tr>
+    <tr>
+      <td>GPT-4o (OpenAI)</td>
+      <td>Polished, accommodating, slightly more formal. Tends toward structured responses.</td>
+      <td>~1.0</td>
+      <td>Chain-of-thought via prompting. o1/o3 models have dedicated reasoning mode.</td>
+    </tr>
+    <tr>
+      <td>Gemini (Google)</td>
+      <td>Helpful, comprehensive, sometimes verbose. Strong on factual recall.</td>
+      <td>~0.9</td>
+      <td>Thinking mode available on Gemini 2.0 Flash Thinking and Pro models.</td>
+    </tr>
+    <tr>
+      <td>Grok (xAI)</td>
+      <td>More casual, willing to be edgy, conversational. Reflects X/Twitter culture.</td>
+      <td>Higher, more variation</td>
+      <td>DeepSearch for research tasks. Less structured reasoning.</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <strong>The honest comparison:</strong> Personality differences between models are real but often overstated. The bigger differentiators are how well each model follows complex instructions, how reliably it uses tools, and how well it maintains context over a long session. Claude's strength is instruction-following and nuanced reasoning. GPT-4o's strength is ecosystem breadth. Gemini's strength is long-context and Google integration. Pick the tool for the job.
+  </div>
+</div>
+
+<div class="phase-complete">
+  <div style="font-size: 40px; margin-bottom: 15px;">Phase 1 Complete</div>
+  <h2>You Now Know How Claude Actually Works</h2>
+  <p style="color: #bbb; margin: 15px 0; max-width: 600px; margin-left: auto; margin-right: auto;">Six sessions. One complete mental model of the machine underneath every conversation you have with Claude.</p>
+
+  <div class="phase-grid">
+    <div class="phase-session">Session 1: Context Window</div>
+    <div class="phase-session">Session 2: Boot Sequence</div>
+    <div class="phase-session">Session 3: Tokens</div>
+    <div class="phase-session">Session 4: Forgetting</div>
+    <div class="phase-session">Session 5: Instructions</div>
+    <div class="phase-session">Session 6: Temperature</div>
+  </div>
+
+  <p style="color: #999; font-size: 14px; margin-top: 10px;">Every advanced Claude technique — multi-session orchestration, context engineering, prompt design, tool use — builds on this foundation.</p>
+</div>
+
+<div class="next-phase">
+  <h3>Next: Phase 2 — The Configuration Layer</h3>
+  <p style="margin-top:10px; color:#ccc">CLAUDE.md deep dive, rules architecture, supplements, the knowledge base. We take apart the actual configuration running your operation and understand why each piece is where it is.</p>
+  <p style="margin-top:5px; color:#999; font-size:13px">6 sessions. After Phase 2, you'll be able to design configuration systems from scratch for any Claude deployment.</p>
+</div>
+
+<script>
+const words = [
+  { word: 'blue',       base: 38 },
+  { word: 'clear',      base: 22 },
+  { word: 'gray',       base: 14 },
+  { word: 'dark',       base: 10 },
+  { word: 'endless',    base: 6  },
+  { word: 'ablaze',     base: 4  },
+  { word: 'weeping',    base: 3  },
+  { word: 'indifferent',base: 2  },
+  { word: 'a lie',      base: 1  },
+];
+
+function applyTemp(base, temp) {
+  if (temp === 0) return base === 38 ? 100 : 0;
+  const logit = Math.log(base / 100);
+  const scaled = logit / temp;
+  return Math.exp(scaled);
+}
+
+function updateTemp(val) {
+  const temp = val / 10;
+  document.getElementById('tempVal').textContent = temp.toFixed(1);
+
+  const raw = words.map(w => ({ ...w, scaled: applyTemp(w.base, temp) }));
+  const sum = raw.reduce((a, b) => a + b.scaled, 0);
+  const probs = raw.map(w => ({ ...w, prob: Math.round(w.scaled / sum * 100) }));
+
+  const colors = ['#4a9', '#5a9', '#7a9', '#9a9', '#C8956C', '#da7', '#e96', '#e74', '#e44'];
+  const container = document.getElementById('probBars');
+  container.innerHTML = '';
+
+  probs.forEach((w, i) => {
+    const row = document.createElement('div');
+    row.className = 'prob-row';
+    row.innerHTML = `
+      <div class="prob-word">"${w.word}"</div>
+      <div class="prob-bar-bg">
+        <div class="prob-bar" style="width:${w.prob}%; background:${colors[i]}">
+          ${w.prob > 8 ? w.prob + '%' : ''}
+        </div>
+      </div>
+      <div class="prob-pct" style="color:${colors[i]}">${w.prob}%</div>
+    `;
+    container.appendChild(row);
+  });
+
+  const top = probs.reduce((a, b) => a.prob > b.prob ? a : b);
+  document.getElementById('selectedWordText').textContent = '"' + top.word + '"';
+
+  let note = '';
+  if (temp === 0) note = '— always, deterministically';
+  else if (temp < 0.7) note = '— almost always, very predictable';
+  else if (temp < 1.2) note = '— most likely, but not guaranteed';
+  else if (temp < 1.7) note = '— still most likely, but competition is real';
+  else note = '— barely leading, could easily be something else';
+  document.getElementById('selectedWordNote').textContent = note;
+
+  let desc;
+  if (temp === 0) desc = '<strong>Temperature 0 — Deterministic:</strong> Claude always picks the single most likely token. No variation. Same input always produces identical output. Useful for tasks where you need exact reproducibility. Tends toward dry, predictable text.';
+  else if (temp < 0.6) desc = '<strong>Low temperature — Precise:</strong> High-probability words dominate. Output is consistent and conservative. Good for factual answers, structured data, code. Creativity is limited but accuracy is high.';
+  else if (temp < 1.3) desc = '<strong>Default range — Balanced:</strong> This is Claude\'s sweet spot. The most likely words still win most of the time, but there\'s enough variation to produce natural, interesting prose. Most conversations happen here.';
+  else if (temp < 1.8) desc = '<strong>High temperature — Creative:</strong> Lower-probability words get a meaningful chance. Output becomes more varied, more surprising, sometimes more interesting. Also more likely to drift off-topic or make logical errors.';
+  else desc = '<strong>Very high temperature — Chaotic:</strong> The probability distribution is nearly flat. Almost any word could come next. Output may be wild and unexpected — occasionally brilliant, often incoherent. Rarely useful for practical tasks.';
+
+  document.getElementById('tempDescription').innerHTML = desc;
+}
+
+// Thinking examples
+const thinkingExamples = {
+  simple: {
+    thinking: 'The user is asking for the capital of France. This is a straightforward factual question. Paris. Done.',
+    answer: 'Paris.'
+  },
+  complex: {
+    thinking: `The user wants to know whether to use SQL or NoSQL for their app. Let me think through this properly.
+
+<span class="think-highlight">What do I need to know?</span> Data structure (structured vs. unstructured), scale requirements, query patterns, consistency needs.
+
+<span class="think-highlight">SQL advantages:</span> ACID compliance, relational queries, mature tooling, better for complex joins. Disadvantages: vertical scaling limits, rigid schema.
+
+<span class="think-highlight">NoSQL advantages:</span> Horizontal scaling, flexible schema, faster for simple lookups. Disadvantages: eventual consistency, limited joins, varies widely by type.
+
+<span class="think-highlight">What's the user's context?</span> They said "small app" — so scale isn't the primary concern. "User profiles and posts" — that's relational data with clear structure.
+
+<span class="think-highlight">Conclusion:</span> SQL is almost certainly the right call here. NoSQL would add complexity without benefit at this scale.`,
+    answer: 'For a small app with user profiles and posts, use SQL (PostgreSQL or SQLite). Your data is relational and structured — NoSQL would add complexity with no benefit at your scale. Start with SQL; switch only if you hit specific scaling problems that SQL can\'t solve.'
+  },
+  code: {
+    thinking: `Need to write a function to find duplicates in a list.
+
+<span class="think-highlight">Approach 1:</span> Nested loop. O(n²). Works but slow for large lists.
+
+<span class="think-highlight">Approach 2:</span> Sort first, then compare adjacent. O(n log n). Better.
+
+<span class="think-highlight">Approach 3:</span> Use a set to track seen items. O(n) time, O(n) space. Best time complexity.
+
+<span class="think-highlight">Edge cases:</span> Empty list → return []. All unique → return []. All duplicates → return all but first occurrence? Or return items that appear more than once?
+
+<span class="think-highlight">The user didn't specify</span> — I'll return items that appear more than once, deduplicated. I'll note this assumption.`,
+    answer: `<code>def find_duplicates(lst):
+    seen = set()
+    duplicates = set()
+    for item in lst:
+        if item in seen:
+            duplicates.add(item)
+        seen.add(item)
+    return list(duplicates)</code>
+
+Returns items that appear more than once, deduplicated. O(n) time and space. Let me know if you want items in order or need to count occurrences.`
+  }
+};
+
+function showThinking(key) {
+  document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  const ex = thinkingExamples[key];
+  document.getElementById('thinkingText').innerHTML = ex.thinking;
+  document.getElementById('answerText').innerHTML = ex.answer;
+}
+
+// Init
+updateTemp(10);
+showThinking('simple');
+</script>
+</body>
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How Claude Thinks — A Practical Course</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #1a1a1a; color: #e0e0e0;
+    line-height: 1.6; min-height: 100vh;
+  }
+
+  /* Header */
+  .hero {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a1f14 100%);
+    border-bottom: 1px solid #333;
+    padding: 60px 40px 50px;
+    text-align: center;
+  }
+  .hero-tag {
+    display: inline-block;
+    background: #3a2a1a; border: 1px solid #C8956C;
+    color: #C8956C; font-size: 12px; letter-spacing: 2px;
+    text-transform: uppercase; padding: 5px 14px;
+    border-radius: 20px; margin-bottom: 20px;
+  }
+  .hero h1 {
+    color: #fff; font-size: 42px; font-weight: 700;
+    line-height: 1.2; margin-bottom: 16px;
+  }
+  .hero h1 span { color: #C8956C; }
+  .hero p {
+    color: #aaa; font-size: 18px; max-width: 580px;
+    margin: 0 auto 30px; line-height: 1.7;
+  }
+  .hero-meta {
+    display: flex; justify-content: center; gap: 30px;
+    flex-wrap: wrap; font-size: 14px; color: #666;
+  }
+  .hero-meta span { display: flex; align-items: center; gap: 6px; }
+  .hero-meta strong { color: #C8956C; }
+
+  /* Main content */
+  .container { max-width: 900px; margin: 0 auto; padding: 50px 30px; }
+
+  /* Phase header */
+  .phase-header {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 24px;
+  }
+  .phase-badge {
+    background: #C8956C; color: #1a1a1a;
+    font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; padding: 4px 12px; border-radius: 20px;
+    white-space: nowrap;
+  }
+  .phase-title { color: #fff; font-size: 22px; font-weight: 600; }
+  .phase-desc { color: #777; font-size: 14px; margin-bottom: 28px; }
+
+  /* Lesson cards */
+  .lessons { display: flex; flex-direction: column; gap: 12px; margin-bottom: 50px; }
+
+  .lesson-card {
+    display: flex; align-items: center; gap: 20px;
+    background: #242424; border: 1px solid #333;
+    border-radius: 12px; padding: 20px 24px;
+    text-decoration: none; color: inherit;
+    transition: all 0.2s; cursor: pointer;
+  }
+  .lesson-card:hover {
+    background: #2a2a2a; border-color: #C8956C;
+    transform: translateX(4px);
+  }
+  .lesson-card.available:hover .lesson-arrow { color: #C8956C; }
+
+  .lesson-num {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; flex-shrink: 0;
+  }
+  .num-done { background: #2a3a2a; color: #4a9; border: 1px solid #2a5a2a; }
+  .num-locked { background: #252525; color: #555; border: 1px solid #333; }
+
+  .lesson-body { flex: 1; }
+  .lesson-title { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .lesson-desc { font-size: 13px; color: #777; }
+  .lesson-tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .lesson-tag {
+    background: #333; color: #999; font-size: 11px;
+    padding: 2px 8px; border-radius: 10px;
+  }
+
+  .lesson-arrow { color: #555; font-size: 20px; flex-shrink: 0; transition: color 0.2s; }
+  .lesson-status {
+    font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    color: #555; flex-shrink: 0;
+  }
+  .status-available { color: #4a9; }
+  .status-soon { color: #555; }
+
+  /* Coming soon phase */
+  .phase-coming {
+    background: #1e1e1e; border: 1px dashed #333;
+    border-radius: 12px; padding: 28px 24px; margin-bottom: 50px;
+  }
+  .phase-coming .phase-title { color: #555; }
+  .phase-coming .phase-badge { background: #333; color: #666; }
+  .coming-list { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .coming-item {
+    display: flex; align-items: center; gap: 12px;
+    color: #555; font-size: 14px;
+  }
+  .coming-dot {
+    width: 6px; height: 6px; background: #444;
+    border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* About */
+  .about {
+    background: #242424; border-radius: 12px;
+    padding: 32px; margin-bottom: 20px;
+    border: 1px solid #333;
+  }
+  .about h2 { color: #C8956C; font-size: 18px; margin-bottom: 12px; }
+  .about p { color: #aaa; font-size: 14px; line-height: 1.8; margin-bottom: 10px; }
+  .about p:last-child { margin-bottom: 0; }
+
+  /* Footer */
+  footer {
+    text-align: center; padding: 30px;
+    color: #555; font-size: 13px; border-top: 1px solid #222;
+  }
+  footer a { color: #C8956C; text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-tag">Free Course</div>
+  <h1>How <span>Claude</span> Thinks</h1>
+  <p>Six interactive lessons on what's actually happening inside the AI you're already using. No jargon. No fluff. Just the mechanics, explained honestly.</p>
+  <div class="hero-meta">
+    <span>📚 <strong>6</strong> lessons complete</span>
+    <span>⏱ <strong>~20 min</strong> per lesson</span>
+    <span>🎯 For <strong>curious non-developers</strong></span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Phase 1 -->
+  <div class="phase-header">
+    <div class="phase-badge">Phase 1 — Complete</div>
+    <div class="phase-title">How Claude Thinks</div>
+  </div>
+  <p class="phase-desc">The machine itself. What Claude actually "sees" and why it behaves the way it does.</p>
+
+  <div class="lessons">
+
+    <a href="phase1-session1-context-window.html" class="lesson-card available">
+      <div class="lesson-num num-done">1</div>
+      <div class="lesson-body">
+        <div class="lesson-title">The Context Window</div>
+        <div class="lesson-desc">What it is physically, how big it is, what fills it up, and why it's the most important concept in AI.</div>
+        <div class="lesson-tags">
+          <span class="lesson-tag">context window</span>
+          <span class="lesson-tag">tokens</span>
+          <span class="lesson-tag">memory</span>
+        </div>
+      </div>
+      <div class="lesson-status status-available">Available</div>
+      <div class="lesson-arrow">→</div>
+    </a>
+
+    <a href="phase1-session2-boot-sequence.html" class="lesson-card available">
+      <div class="lesson-num num-done">2</div>
+      <div class="lesson-body">
+        <div class="lesson-title">What Claude Sees at Session Start</div>
+        <div class="lesson-desc">The exact loading order — system prompt → CLAUDE.md → rules → your first message — visualized step by step.</div>
+        <div class="lesson-tags">
+          <span class="lesson-tag">boot sequence</span>
+          <span class="lesson-tag">CLAUDE.md</span>
+          <span class="lesson-tag">startup</span>
+        </div>
+      </div>
+      <div class="lesson-status status-available">Available</div>
+      <div class="lesson-arrow">→</div>
+    </a>
+
+    <a href="phase1-session3-tokens.html" class="lesson-card available">
+      <div class="lesson-num num-done">3</div>
+      <div class="lesson-body">
+        <div class="lesson-title">Tokens: The Real Currency</div>
+        <div class="lesson-desc">What a token actually is, why "200K context" isn't 200K words, and how to count them with a live tokenizer.</div>
+        <div class="lesson-tags">
+          <span class="lesson-tag">tokenization</span>
+          <span class="lesson-tag">cost</span>
+          <span class="lesson-tag">interactive</span>
+        </div>
+      </div>
+      <div class="lesson-status status-available">Available</div>
+      <div class="lesson-arrow">→</div>
+    </a>
+
+    <a href="phase1-session4-forgetting.html" class="lesson-card available">
+      <div class="lesson-num num-done">4</div>
+      <div class="lesson-body">
+        <div class="lesson-title">Why Claude "Forgets"</div>
+        <div class="lesson-desc">Not a bug — an architectural reality. Three types of forgetting, what compaction is, and what survives vs. what doesn't.</div>
+        <div class="lesson-tags">
+          <span class="lesson-tag">compaction</span>
+          <span class="lesson-tag">attention fade</span>
+          <span class="lesson-tag">session memory</span>
+        </div>
+      </div>
+      <div class="lesson-status status-available">Available</div>
+      <div class="lesson-arrow">→</div>
+    </a>
+
+    <a href="phase1-session5-reading-instructions.html" class="lesson-card available">
+      <div class="lesson-num num-done">5</div>
+      <div class="lesson-body">
+        <div class="lesson-title">How Claude "Reads" Instructions</div>
+        <div class="lesson-desc">Attention, primacy-recency bias, and why instructions at the top hit different. Includes an instruction rater and before/after examples.</div>
+        <div class="lesson-tags">
+          <span class="lesson-tag">attention</span>
+          <span class="lesson-tag">instruction quality</span>
+          <span class="lesson-tag">configuration</span>
+        </div>
+      </div>
+      <div class="lesson-status status-available">Available</div>
+      <div class="lesson-arrow">→</div>
+    </a>
+
+    <a href="phase1-session6-temperature.html" class="lesson-card available">
+      <div class="lesson-num num-done">6</div>
+      <div class="lesson-body">
+        <div class="lesson-title">Temperature and Personality</div>
+        <div class="lesson-desc">What makes Claude creative vs. precise, why the same prompt gives different results, and what "thinking" actually means mechanically.</div>
+        <div class="lesson-tags">
+          <span class="lesson-tag">temperature</span>
+          <span class="lesson-tag">extended thinking</span>
+          <span class="lesson-tag">model comparison</span>
+        </div>
+      </div>
+      <div class="lesson-status status-available">Available</div>
+      <div class="lesson-arrow">→</div>
+    </a>
+
+  </div>
+
+  <!-- Phase 2 Coming Soon -->
+  <div class="phase-coming">
+    <div class="phase-header" style="margin-bottom:10px">
+      <div class="phase-badge">Phase 2 — Coming Soon</div>
+      <div class="phase-title">The Configuration Layer</div>
+    </div>
+    <p style="color:#555; font-size:14px;">The files that shape Claude's behavior. Why structure matters more than word count.</p>
+    <div class="coming-list">
+      <div class="coming-item"><div class="coming-dot"></div>CLAUDE.md Deep Dive — what every section actually does</div>
+      <div class="coming-item"><div class="coming-dot"></div>Rules Files — how @-imports work and why modular beats monolithic</div>
+      <div class="coming-item"><div class="coming-dot"></div>Supplements and Product Context — when to pre-load vs. retrieve</div>
+      <div class="coming-item"><div class="coming-dot"></div>Session Memory — cross-session continuity without magic</div>
+      <div class="coming-item"><div class="coming-dot"></div>The Knowledge Base — semantic search and institutional memory</div>
+      <div class="coming-item"><div class="coming-dot"></div>Prompt Engineering from the Inside — what bold and caps really do</div>
+    </div>
+  </div>
+
+  <!-- About -->
+  <div class="about">
+    <h2>About This Course</h2>
+    <p>Most Claude education falls into two buckets: "here's how to sign up" beginner content, or deep developer tutorials. The critical middle layer — how Claude actually processes information and why configuration choices matter — doesn't exist as a structured learning path.</p>
+    <p>This course fills that gap. Each lesson is interactive, self-contained, and designed to build a mental model you can actually use when working with AI. No coding required.</p>
+    <p>Built by <a href="https://nexhamcorp.com">NexHam</a> — software and AI consulting.</p>
+  </div>
+
+</div>
+
+<footer>
+  <p>© 2026 NexHam · <a href="https://nexhamcorp.com">nexhamcorp.com</a></p>
+</footer>
+
+</body>
+</html>

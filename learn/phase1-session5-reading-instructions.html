@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 1, Session 5: How Claude Reads Instructions</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #1a1a1a; color: #e0e0e0;
+    line-height: 1.6; padding: 20px; max-width: 900px; margin: 0 auto;
+  }
+  h1 { color: #C8956C; font-size: 28px; margin-bottom: 5px; }
+  h2 { color: #C8956C; font-size: 22px; margin: 30px 0 15px; }
+  h3 { color: #fff; font-size: 16px; margin: 16px 0 8px; }
+  .subtitle { color: #999; font-size: 14px; margin-bottom: 30px; }
+  .section { background: #242424; border-radius: 12px; padding: 24px; margin: 20px 0; }
+  .callout { background: #2a2318; border-left: 4px solid #C8956C; padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+  .callout strong { color: #C8956C; }
+  .warning { background: #2a1f1f; border-left: 4px solid #e74c3c; padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: #e74c3c; }
+  .insight { background: #1a2a20; border-left: 4px solid #4a9; padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+  .insight strong { color: #4a9; }
+  .analogy { background: #1a2020; border: 1px solid #2a4040; padding: 20px; border-radius: 10px; margin: 15px 0; }
+  .analogy-label { color: #5ba; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  code { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #C8956C; }
+  table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+  th { text-align: left; padding: 10px 12px; background: #2a2a2a; color: #C8956C; font-size: 14px; }
+  td { padding: 10px 12px; border-bottom: 1px solid #333; font-size: 14px; }
+  tr:hover td { background: #2a2a2a; }
+
+  /* Attention Curve */
+  .curve-container { position: relative; margin: 30px 0; background: #1a1a1a; border-radius: 12px; padding: 20px; }
+  .curve-svg { width: 100%; height: 200px; }
+  .curve-labels { display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-top: 6px; padding: 0 10px; }
+  .zone-label { text-align: center; font-size: 13px; }
+  .zone-high { color: #4a9; }
+  .zone-low { color: #e74; }
+
+  /* Document heatmap */
+  .doc-heatmap { background: #1a1a1a; border-radius: 10px; padding: 20px; margin: 20px 0; }
+  .doc-line {
+    padding: 7px 12px; margin: 3px 0; border-radius: 5px; font-size: 13px;
+    display: flex; align-items: center; gap: 10px; transition: all 0.3s; cursor: default;
+  }
+  .doc-line .heat-bar { width: 60px; height: 8px; border-radius: 4px; flex-shrink: 0; }
+  .doc-line .line-text { flex: 1; font-family: 'Courier New', monospace; font-size: 12px; }
+  .doc-line .heat-label { width: 35px; font-size: 11px; text-align: right; font-family: monospace; }
+
+  /* Instruction Rater */
+  .rater-input {
+    width: 100%; background: #1a1a1a; border: 1px solid #444; border-radius: 8px;
+    padding: 12px; color: #e0e0e0; font-size: 14px; font-family: inherit;
+    resize: vertical; min-height: 60px; outline: none; margin: 10px 0;
+  }
+  .rater-input:focus { border-color: #C8956C; }
+  .rate-btn {
+    background: #C8956C; color: #1a1a1a; border: none; padding: 10px 24px;
+    border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; margin-right: 8px;
+    transition: all 0.2s;
+  }
+  .rate-btn:hover { background: #d4a57c; }
+  .rating-result { margin-top: 15px; display: none; }
+  .rating-score {
+    font-size: 48px; font-weight: bold; font-family: monospace;
+    text-align: center; padding: 15px; border-radius: 10px; margin: 10px 0;
+  }
+  .rating-breakdown { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .rating-factor { background: #1a1a1a; border-radius: 8px; padding: 12px; font-size: 13px; }
+  .factor-label { color: #999; font-size: 11px; margin-bottom: 4px; }
+  .factor-val { font-weight: bold; }
+
+  /* Before/After */
+  .before-after { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+  @media (max-width: 600px) { .before-after { grid-template-columns: 1fr; } }
+  .ba-panel { background: #1a1a1a; border-radius: 10px; padding: 16px; border-top: 3px solid; }
+  .ba-panel.before { border-color: #e74c3c; }
+  .ba-panel.after { border-color: #4a9; }
+  .ba-panel h4 { font-size: 14px; margin-bottom: 12px; }
+  .before h4 { color: #e74; }
+  .after h4 { color: #4a9; }
+  .ba-instruction { background: #2a2a2a; border-radius: 6px; padding: 10px 12px; margin: 6px 0; font-size: 13px; font-family: 'Courier New', monospace; line-height: 1.5; }
+  .ba-result { margin-top: 10px; font-size: 13px; color: #bbb; font-style: italic; padding: 8px; border-top: 1px solid #333; }
+
+  /* Placement guide */
+  .placement-guide { margin: 20px 0; }
+  .placement-row {
+    display: flex; gap: 12px; margin: 8px 0; align-items: flex-start;
+    background: #2a2a2a; border-radius: 8px; padding: 12px 16px;
+  }
+  .placement-where { width: 160px; flex-shrink: 0; font-size: 13px; color: #C8956C; font-weight: bold; }
+  .placement-what { flex: 1; font-size: 13px; color: #bbb; }
+  .placement-why { width: 180px; flex-shrink: 0; font-size: 12px; color: #666; font-style: italic; }
+
+  /* Myth busters */
+  .myth-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+  @media (max-width: 600px) { .myth-grid { grid-template-columns: 1fr; } }
+  .myth-card { background: #2a2a2a; border-radius: 10px; padding: 16px; }
+  .myth-label { font-size: 11px; font-weight: bold; letter-spacing: 1px; margin-bottom: 8px; }
+  .myth-label.myth { color: #e74; }
+  .myth-label.truth { color: #4a9; }
+  .myth-text { font-size: 14px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; margin-bottom: 0; border-bottom: 1px solid #333; }
+  .tab {
+    padding: 10px 20px; cursor: pointer; font-size: 14px; color: #777;
+    border-bottom: 3px solid transparent; transition: all 0.2s; margin-bottom: -1px;
+  }
+  .tab.active { color: #C8956C; border-bottom-color: #C8956C; }
+  .tab:hover { color: #ddd; }
+  .tab-content { display: none; padding-top: 20px; }
+  .tab-content.active { display: block; }
+
+  .next-session {
+    background: #2a2518; border: 2px solid #C8956C; border-radius: 12px;
+    padding: 24px; margin: 30px 0; text-align: center;
+  }
+  .next-session h3 { color: #C8956C; }
+</style>
+</head>
+<body>
+
+<h1>Phase 1, Session 5</h1>
+<div class="subtitle">How Claude "Reads" Instructions — Placement, Priority, and What Actually Works</div>
+
+<div class="section">
+  <h2>The Big Idea</h2>
+  <p>Claude doesn't read your instructions the way a human reads a contract — systematically, front to back, with equal attention to every clause. It processes everything through a mechanism called attention, which means <strong style="color:#C8956C">where you put something matters almost as much as what it says.</strong></p>
+
+  <p style="margin-top: 12px;">This session answers the questions people argue about constantly: Does CAPS help? Should rules go at the top or bottom? Why does Claude follow the rule at message 2 but ignore it at message 40? And what's the single most powerful thing you can do to make an instruction stick?</p>
+
+  <div class="analogy">
+    <div class="analogy-label">Analogy</div>
+    <strong style="color:#fff">Think of it like a newspaper front page.</strong> The headline gets read. The first paragraph gets read. The story that wraps to page D-7? Most people never get there. The content didn't disappear — it's still in the paper. But attention isn't uniformly distributed. Claude has a similar bias: things at the start and end of a document, and things in the most recent message, get proportionally more attention than things buried in the middle.
+  </div>
+</div>
+
+<div class="section">
+  <h2>The Attention Curve — Where Instructions Land</h2>
+  <p>Researchers call this the "primacy-recency effect" and the "lost in the middle" problem. It's been measured empirically in large language models. Here's what it looks like across a long document:</p>
+
+  <div class="curve-container">
+    <svg class="curve-svg" viewBox="0 0 800 180" xmlns="http://www.w3.org/2000/svg">
+      <!-- Grid lines -->
+      <line x1="0" y1="40" x2="800" y2="40" stroke="#333" stroke-width="1" stroke-dasharray="4"/>
+      <line x1="0" y1="80" x2="800" y2="80" stroke="#333" stroke-width="1" stroke-dasharray="4"/>
+      <line x1="0" y1="120" x2="800" y2="120" stroke="#333" stroke-width="1" stroke-dasharray="4"/>
+      <line x1="0" y1="160" x2="800" y2="160" stroke="#444" stroke-width="1"/>
+
+      <!-- Y axis labels -->
+      <text x="5" y="44" fill="#555" font-size="11">High</text>
+      <text x="5" y="124" fill="#555" font-size="11">Low</text>
+
+      <!-- Attention curve path -->
+      <defs>
+        <linearGradient id="curveGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#4a9"/>
+          <stop offset="25%" stop-color="#ea5"/>
+          <stop offset="50%" stop-color="#e74"/>
+          <stop offset="75%" stop-color="#ea5"/>
+          <stop offset="100%" stop-color="#4a9"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Fill area under curve -->
+      <path d="M 40,40 C 80,35 120,38 180,90 C 240,130 300,148 400,152 C 500,148 560,130 620,90 C 680,38 720,35 760,38 L 760,160 L 40,160 Z"
+            fill="rgba(100,100,200,0.08)" stroke="none"/>
+
+      <!-- The curve itself -->
+      <path d="M 40,40 C 80,35 120,38 180,90 C 240,130 300,148 400,152 C 500,148 560,130 620,90 C 680,38 720,35 760,38"
+            fill="none" stroke="url(#curveGrad)" stroke-width="3.5" stroke-linecap="round"/>
+
+      <!-- Peak dots -->
+      <circle cx="40" cy="40" r="6" fill="#4a9"/>
+      <circle cx="760" cy="38" r="6" fill="#4a9"/>
+      <circle cx="400" cy="152" r="6" fill="#e74"/>
+
+      <!-- Labels on curve -->
+      <text x="30" y="28" fill="#4a9" font-size="13" font-weight="bold">Start</text>
+      <text x="740" y="26" fill="#4a9" font-size="13" font-weight="bold">End</text>
+      <text x="360" y="175" fill="#e74" font-size="13" font-weight="bold">Middle</text>
+
+      <!-- Zone labels at bottom -->
+      <text x="40" y="175" fill="#4a9" font-size="11">PRIMACY ZONE</text>
+      <text x="340" y="175" fill="#e74" font-size="11">LOST IN THE MIDDLE</text>
+      <text x="650" y="175" fill="#4a9" font-size="11">RECENCY ZONE</text>
+
+      <!-- Annotations -->
+      <text x="60" y="58" fill="#777" font-size="10">System prompt,</text>
+      <text x="60" y="70" fill="#777" font-size="10">CLAUDE.md start</text>
+      <text x="290" y="140" fill="#777" font-size="10">Rules buried in</text>
+      <text x="290" y="152" fill="#777" font-size="10">the middle</text>
+      <text x="620" y="58" fill="#777" font-size="10">Your current</text>
+      <text x="620" y="70" fill="#777" font-size="10">message</text>
+    </svg>
+    <div class="curve-labels">
+      <span>Beginning of context</span>
+      <span>End of context</span>
+    </div>
+  </div>
+
+  <p style="font-size: 14px; color: #bbb;">This curve applies within a single document (like your CLAUDE.md) AND across the entire context window. Instructions near the top of a rules file get more attention than instructions 30 lines down. Your current message gets more attention than the message you sent an hour ago.</p>
+
+  <div class="callout">
+    <strong>The practical implication:</strong> If you have 10 rules in a file and one of them is critical, don't put it at rule #7. Put it at rule #1. Not because Claude skips rule #7 — it reads everything — but because priority and compliance aren't the same thing.
+  </div>
+</div>
+
+<div class="section">
+  <h2>Document Heatmap — Where the Attention Goes</h2>
+  <p>Here's a simulated CLAUDE.md with attention heat shown for each section. Hover to see attention weights.</p>
+
+  <div class="doc-heatmap" id="heatmap">
+    <!-- Lines rendered by JS -->
+  </div>
+
+  <div class="insight">
+    <strong>Notice what's in the middle:</strong> The detailed rules, the edge cases, the "also remember to..." sections. These are exactly the things that get the least attention. This is why critical rules belong at the top and why people use ALL CAPS for important items (it signals "this is not normal content").
+  </div>
+</div>
+
+<div class="section">
+  <h2>Rate Your Instructions</h2>
+  <p>Type an instruction and see how effective it's likely to be — and why.</p>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('tab-rate')">Rate an Instruction</div>
+    <div class="tab" onclick="switchTab('tab-compare')">Before / After Examples</div>
+  </div>
+
+  <div class="tab-content active" id="tab-rate">
+    <textarea class="rater-input" id="raterInput" placeholder='Try examples like:
+"Be concise."
+"NEVER use em dashes — this is critical!!!"
+"When writing emails, always start with the recipient name and keep it under 150 words, using bullet points for any list of 3 or more items."
+"Don't be verbose."'></textarea>
+    <button class="rate-btn" onclick="rateInstruction()">Analyze</button>
+    <button class="rate-btn" style="background:#333; color:#ddd;" onclick="clearRater()">Clear</button>
+
+    <div class="rating-result" id="ratingResult">
+      <div class="rating-score" id="ratingScore"></div>
+      <div id="ratingVerdict" style="text-align:center; font-size: 15px; margin-bottom: 15px;"></div>
+      <div class="rating-breakdown" id="ratingBreakdown"></div>
+      <div id="ratingTip" style="margin-top: 15px;"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-compare">
+    <div class="before-after">
+      <div class="ba-panel before">
+        <h4>Weak Instructions</h4>
+        <div class="ba-instruction">Be concise.</div>
+        <div class="ba-result">Claude's interpretation: "less verbose than usual" — no specific target. Results vary wildly.</div>
+
+        <div class="ba-instruction" style="margin-top: 16px;">NEVER USE EM DASHES!!! This is SO important!!!</div>
+        <div class="ba-result">Emphasis helps a little, but "never" + all-caps is vague about what counts. Claude may still use em dashes when it "feels" appropriate.</div>
+
+        <div class="ba-instruction" style="margin-top: 16px;">Be a helpful assistant who considers all aspects of the user's request and provides thorough, well-reasoned responses that address not just the surface question but the underlying need.</div>
+        <div class="ba-result">This sounds detailed but says nothing actionable. "Helpful," "thorough," "well-reasoned" are all things Claude already tries to do by default.</div>
+      </div>
+
+      <div class="ba-panel after">
+        <h4>Strong Instructions</h4>
+        <div class="ba-instruction">Keep responses under 150 words unless I ask for more. If I ask a yes/no question, answer yes or no first.</div>
+        <div class="ba-result">Specific, measurable, has a clear override condition. Claude can evaluate compliance mechanically.</div>
+
+        <div class="ba-instruction" style="margin-top: 16px;">Do not use the em dash character (—) anywhere in your response. Use a comma, period, or restructure the sentence instead.</div>
+        <div class="ba-result">Specific character identified, specific alternatives provided. Claude knows exactly what to avoid and what to do instead.</div>
+
+        <div class="ba-instruction" style="margin-top: 16px;">You are a customer support agent for Acme Corp. Your job is to resolve the customer's issue in the fewest messages possible. If you can't resolve it, say so directly in the first sentence and explain what they need to do next.</div>
+        <div class="ba-result">Role is specific, success metric is defined, failure behavior is scripted. No ambiguity about what "good" looks like.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Myth Busters — Prompting Folk Wisdom vs. Reality</h2>
+
+  <div class="myth-grid">
+    <div class="myth-card">
+      <div class="myth-label myth">MYTH</div>
+      <div class="myth-text">"Writing in ALL CAPS makes Claude follow the rule."</div>
+    </div>
+    <div class="myth-card">
+      <div class="myth-label truth">TRUTH</div>
+      <div class="myth-text">CAPS signals "this is different from normal content" which does help. But it's not a guarantee. A specific, measurable instruction in lowercase outperforms a vague instruction in all caps every time.</div>
+    </div>
+
+    <div class="myth-card">
+      <div class="myth-label myth">MYTH</div>
+      <div class="myth-text">"Adding 'This is very important' or 'Critical:' makes Claude pay more attention."</div>
+    </div>
+    <div class="myth-card">
+      <div class="myth-label truth">TRUTH</div>
+      <div class="myth-text">Marginally. These phrases don't trigger a special mode — they're just text. What actually works: putting important things first, and being specific enough that Claude has no interpretive wiggle room.</div>
+    </div>
+
+    <div class="myth-card">
+      <div class="myth-label myth">MYTH</div>
+      <div class="myth-text">"Long, detailed instructions are better than short ones."</div>
+    </div>
+    <div class="myth-card">
+      <div class="myth-label truth">TRUTH</div>
+      <div class="myth-text">Specificity matters more than length. "Respond in exactly 3 bullet points, each under 20 words" is better than two paragraphs about being concise. Short and specific wins over long and vague.</div>
+    </div>
+
+    <div class="myth-card">
+      <div class="myth-label myth">MYTH</div>
+      <div class="myth-text">"Claude follows instructions at the bottom of the prompt because it reads them last."</div>
+    </div>
+    <div class="myth-card">
+      <div class="myth-label truth">TRUTH</div>
+      <div class="myth-text">The recency effect is real, and end-of-document instructions do get a boost — but so does the beginning. The absolute worst place for critical instructions is the middle of a long document.</div>
+    </div>
+
+    <div class="myth-card">
+      <div class="myth-label myth">MYTH</div>
+      <div class="myth-text">"Once I tell Claude a rule, I don't need to repeat it."</div>
+    </div>
+    <div class="myth-card">
+      <div class="myth-label truth">TRUTH</div>
+      <div class="myth-text">True for a fresh session with lean context. Not true for long sessions where attention fade kicks in. Repeating critical constraints in your current message is one of the highest-ROI prompting techniques.</div>
+    </div>
+
+    <div class="myth-card">
+      <div class="myth-label myth">MYTH</div>
+      <div class="myth-text">"Examples confuse Claude — just state the rule clearly."</div>
+    </div>
+    <div class="myth-card">
+      <div class="myth-label truth">TRUTH</div>
+      <div class="myth-text">The opposite. Examples are often more effective than rules. "Write like this: [example]" outperforms "be concise and direct" because it gives Claude a concrete target to pattern-match against.</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>The Instruction Placement Guide</h2>
+  <p>Where you put an instruction should match what you need from it.</p>
+
+  <div class="placement-guide">
+    <div class="placement-row">
+      <div class="placement-where">In your user preferences</div>
+      <div class="placement-what">Style preferences that should apply everywhere, always. Tone, format defaults, persona preferences. Things you'd want in every single response regardless of context.</div>
+      <div class="placement-why">Injected into system prompt — highest possible position, applies globally.</div>
+    </div>
+    <div class="placement-row">
+      <div class="placement-where">Top of CLAUDE.md</div>
+      <div class="placement-what">Identity and the most critical behavioral rules. Who Claude is, what it must never do, what it must always do. Your hardest hard rules.</div>
+      <div class="placement-why">Primacy zone — maximum attention weight, auto-loaded every session.</div>
+    </div>
+    <div class="placement-row">
+      <div class="placement-where">Middle of CLAUDE.md</div>
+      <div class="placement-what">Reference material, knowledge maps, tool lists, contextual information. Things Claude needs to know but doesn't need to "follow."</div>
+      <div class="placement-why">Lost in the middle — fine for reference, bad for rules requiring reliable compliance.</div>
+    </div>
+    <div class="placement-row">
+      <div class="placement-where">End of CLAUDE.md / rules files</div>
+      <div class="placement-what">Secondary behavioral rules, edge case guidance, supplementary instructions. Important but not critical.</div>
+      <div class="placement-why">Recency zone within boot context — decent attention weight.</div>
+    </div>
+    <div class="placement-row">
+      <div class="placement-where">In your current message</div>
+      <div class="placement-what">Anything that must be followed RIGHT NOW. Overrides, reminders, session-specific constraints, critical formatting rules that have been drifting.</div>
+      <div class="placement-why">Highest recency, highest attention — most powerful position of all.</div>
+    </div>
+    <div class="placement-row">
+      <div class="placement-where">Knowledge base (retrieved)</div>
+      <div class="placement-what">Domain knowledge, reference material, historical context. Things Claude needs when relevant, not on every turn.</div>
+      <div class="placement-why">Zero boot cost. Retrieved on demand. Not in attention competition at all until called.</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>The Single Most Powerful Prompting Technique</h2>
+
+  <div style="text-align: center; padding: 30px; background: #1a1a1a; border-radius: 12px; margin: 20px 0;">
+    <div style="font-size: 22px; font-weight: bold; color: #C8956C; margin-bottom: 15px;">Show an example. Don't just describe the rule.</div>
+    <div style="font-size: 15px; color: #bbb; max-width: 650px; margin: 0 auto; line-height: 1.8;">
+      Claude is a next-token predictor at its core. The most efficient way to communicate what you want is to give it a pattern to continue — not rules to interpret. A single well-chosen example tells Claude more than three paragraphs of instruction about tone, format, and style simultaneously.
+    </div>
+  </div>
+
+  <table>
+    <tr><th>Approach</th><th>Instruction</th><th>Result reliability</th></tr>
+    <tr>
+      <td>Abstract rule</td>
+      <td>"Write in a professional but conversational tone."</td>
+      <td style="color:#ea5;">Medium — "professional" and "conversational" mean different things to different people.</td>
+    </tr>
+    <tr>
+      <td>Negative constraint</td>
+      <td>"Don't sound like a corporate press release."</td>
+      <td style="color:#ea5;">Better — but still requires interpretation of what "press release" means.</td>
+    </tr>
+    <tr>
+      <td>Example provided</td>
+      <td>"Write like this: 'The build is green. We're good to ship.' Not like this: 'I am pleased to inform you that the build process has completed successfully.'"</td>
+      <td style="color:#4a9;">Highest — Claude has a concrete pattern to match.</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <strong>This is why your user preference "Write like you're talking to a smart friend" works better than "be casual."</strong> It activates a specific register Claude already understands rather than asking Claude to define "casual" from scratch.
+  </div>
+</div>
+
+<div class="section">
+  <h2>Putting It Together — A Checklist</h2>
+
+  <table>
+    <tr><th>Question</th><th>If Yes...</th></tr>
+    <tr>
+      <td>Is this instruction critical and needs to be followed every time?</td>
+      <td>Put it at the TOP of your rules file. Consider adding to user preferences for global application.</td>
+    </tr>
+    <tr>
+      <td>Is Claude drifting from a rule mid-session?</td>
+      <td>Restate it in your current message. That's the highest-attention location.</td>
+    </tr>
+    <tr>
+      <td>Is your instruction vague? ("be concise", "be helpful")</td>
+      <td>Add specifics or an example. What does success actually look like?</td>
+    </tr>
+    <tr>
+      <td>Have you been working for 2+ hours in one session?</td>
+      <td>Rule drift is likely. Restate key constraints or start fresh.</td>
+    </tr>
+    <tr>
+      <td>Is there information you want available but not paying for every turn?</td>
+      <td>Put it in a knowledge base. Retrieve when relevant.</td>
+    </tr>
+    <tr>
+      <td>Is an instruction buried in the middle of a long document?</td>
+      <td>Move it to the top or add a reference to it early in the document.</td>
+    </tr>
+  </table>
+</div>
+
+<div class="next-session">
+  <h3>Next: Phase 1, Session 6</h3>
+  <p style="margin-top:10px; color:#ccc">Temperature and Personality — What makes Claude creative vs. precise, why the same prompt gives different results, and what "thinking" actually means mechanically.</p>
+  <p style="margin-top:5px; color:#999; font-size:13px">The final session of Phase 1. After this, you'll have a complete mechanical picture of how Claude actually works before we move into configuration and tools.</p>
+</div>
+
+<script>
+// Heatmap data
+const heatmapLines = [
+  { text: '## IDENTITY — You are a customer support agent', heat: 92, color: '#4a9' },
+  { text: '## CRITICAL RULES', heat: 88, color: '#4a9' },
+  { text: 'Never promise refunds you cannot authorize.', heat: 84, color: '#6a9' },
+  { text: 'Always confirm the customer\'s name first.', heat: 80, color: '#7a9' },
+  { text: '', heat: 0, color: '#333' },
+  { text: '## TONE AND FORMAT', heat: 68, color: '#ea5' },
+  { text: 'Keep responses under 150 words.', heat: 62, color: '#ea5' },
+  { text: 'Use bullet points for lists of 3 or more items.', heat: 56, color: '#da6' },
+  { text: 'Do not use em dashes.', heat: 50, color: '#ca7' },
+  { text: '', heat: 0, color: '#333' },
+  { text: '## ESCALATION RULES', heat: 44, color: '#e74' },
+  { text: 'Escalate billing disputes over $500.', heat: 40, color: '#e74' },
+  { text: 'Escalate legal threats immediately.', heat: 38, color: '#e64' },
+  { text: 'Use template TMPL-003 for refund denials.', heat: 36, color: '#e54' },
+  { text: '', heat: 0, color: '#333' },
+  { text: '## KNOWLEDGE BASE', heat: 32, color: '#e44' },
+  { text: 'Products: StandardPlan, ProPlan, EnterprisePlan', heat: 30, color: '#e44' },
+  { text: 'Refund window: 30 days from purchase.', heat: 29, color: '#e44' },
+  { text: '...additional reference material...', heat: 27, color: '#e44' },
+  { text: '', heat: 0, color: '#333' },
+  { text: '## FINAL NOTE', heat: 58, color: '#da6' },
+  { text: 'When in doubt, prioritize customer satisfaction.', heat: 62, color: '#ea5' },
+  { text: 'You represent our brand in every interaction.', heat: 65, color: '#ea5' },
+];
+
+function getHeatColor(heat) {
+  if (heat === 0) return '#1a1a1a';
+  if (heat >= 80) return 'rgba(74,170,110,0.2)';
+  if (heat >= 60) return 'rgba(234,170,80,0.15)';
+  if (heat >= 40) return 'rgba(231,76,60,0.12)';
+  return 'rgba(231,76,60,0.08)';
+}
+
+function buildHeatmap() {
+  const container = document.getElementById('heatmap');
+  heatmapLines.forEach(line => {
+    const div = document.createElement('div');
+    div.className = 'doc-line';
+    if (line.heat === 0) {
+      div.style.height = '8px';
+      div.style.background = 'transparent';
+      container.appendChild(div);
+      return;
+    }
+    div.style.background = getHeatColor(line.heat);
+
+    const barDiv = document.createElement('div');
+    barDiv.className = 'heat-bar';
+    barDiv.style.background = line.color;
+    barDiv.style.width = '60px';
+    barDiv.style.height = '8px';
+    barDiv.style.borderRadius = '4px';
+    barDiv.style.position = 'relative';
+    barDiv.style.overflow = 'hidden';
+    barDiv.innerHTML = `<div style="width:${line.heat}%; height:100%; background:${line.color}; border-radius:4px;"></div>`;
+
+    const textDiv = document.createElement('div');
+    textDiv.className = 'line-text';
+    textDiv.textContent = line.text;
+
+    const pctDiv = document.createElement('div');
+    pctDiv.className = 'heat-label';
+    pctDiv.style.color = line.color;
+    pctDiv.textContent = line.heat + '%';
+
+    div.appendChild(barDiv);
+    div.appendChild(textDiv);
+    div.appendChild(pctDiv);
+    container.appendChild(div);
+  });
+}
+
+// Instruction rater
+function rateInstruction() {
+  const text = document.getElementById('raterInput').value.trim();
+  if (!text) return;
+
+  // Scoring dimensions
+  let specificity = 0, measurability = 0, actionability = 0, emphasis = 0;
+  let tips = [];
+
+  const lower = text.toLowerCase();
+  const words = text.split(/\s+/).length;
+
+  // Specificity: penalize vague words, reward specific constraints
+  const vagueWords = ['concise', 'brief', 'helpful', 'good', 'nice', 'appropriate', 'professional', 'thorough', 'clear', 'detailed'];
+  const specificPatterns = [/\d+\s*(word|char|bullet|sentence|line)/, /always\s+\w+/, /never\s+\w+/, /first\s+\w+/, /exactly/, /under\s+\d+/, /over\s+\d+/, /at\s+most/, /at\s+least/];
+
+  let vagueCount = vagueWords.filter(w => lower.includes(w)).length;
+  let specificCount = specificPatterns.filter(p => p.test(lower)).length;
+
+  specificity = Math.max(10, Math.min(100, 40 + specificCount * 20 - vagueCount * 15));
+
+  // Measurability: can you tell if Claude followed it?
+  const measurableIndicators = [/\d+/, /never/, /always/, /must/, /only/, /first/, /last/, /before/, /after/];
+  let measurableCount = measurableIndicators.filter(p => p.test(lower)).length;
+  measurability = Math.max(10, Math.min(100, 25 + measurableCount * 18));
+
+  // Actionability: does it tell Claude what to DO?
+  const actionVerbs = ['use', 'write', 'respond', 'start', 'end', 'include', 'exclude', 'avoid', 'list', 'explain', 'ask', 'confirm', 'say'];
+  let actionCount = actionVerbs.filter(w => lower.includes(w)).length;
+  actionability = Math.max(15, Math.min(100, 30 + actionCount * 20));
+
+  // Emphasis: CAPS, punctuation, explicit weight words
+  const capsWords = text.match(/[A-Z]{3,}/g) || [];
+  const exclamations = (text.match(/!/g) || []).length;
+  const emphasisWords = ['critical', 'important', 'must', 'never', 'always', 'required'].filter(w => lower.includes(w)).length;
+  emphasis = Math.min(100, 20 + capsWords.length * 15 + exclamations * 8 + emphasisWords * 12);
+
+  const overall = Math.round((specificity * 0.4) + (measurability * 0.3) + (actionability * 0.2) + (emphasis * 0.1));
+
+  // Tips
+  if (vagueCount > 0) tips.push(`"${vagueWords.filter(w => lower.includes(w))[0]}" is vague — add a specific target or example.`);
+  if (specificCount === 0) tips.push('Add a number, constraint, or measurable condition to make this enforceable.');
+  if (actionCount === 0) tips.push('Start with an action verb ("Write...", "Always...", "Never...") to make the instruction direct.');
+  if (!lower.includes('example') && words < 8) tips.push('Consider adding a concrete example. "Like this: [example]" often works better than the rule alone.');
+  if (overall > 70) tips.push('Good instruction. If compliance is still inconsistent, try moving it to the top of your rules file or restating it in your message.');
+
+  // Display
+  const resultDiv = document.getElementById('ratingResult');
+  resultDiv.style.display = 'block';
+
+  const scoreDiv = document.getElementById('ratingScore');
+  let scoreColor = overall >= 70 ? '#4a9' : overall >= 45 ? '#ea5' : '#e74';
+  scoreDiv.style.background = scoreColor + '22';
+  scoreDiv.style.color = scoreColor;
+  scoreDiv.textContent = overall + '/100';
+
+  const verdictDiv = document.getElementById('ratingVerdict');
+  if (overall >= 80) verdictDiv.textContent = 'Strong instruction — Claude is likely to follow this reliably.';
+  else if (overall >= 60) verdictDiv.textContent = 'Decent, but has room to be more specific or measurable.';
+  else if (overall >= 40) verdictDiv.textContent = 'Weak — Claude will interpret this loosely. Add specifics.';
+  else verdictDiv.textContent = 'Vague. Claude will guess what you mean and may guess wrong.';
+  verdictDiv.style.color = scoreColor;
+
+  document.getElementById('ratingBreakdown').innerHTML = `
+    <div class="rating-factor">
+      <div class="factor-label">SPECIFICITY</div>
+      <div class="factor-val" style="color:${specificity>=60?'#4a9':'#ea5'}">${specificity}/100</div>
+      <div style="font-size:12px; color:#777; margin-top:4px;">Does it give Claude a precise target?</div>
+    </div>
+    <div class="rating-factor">
+      <div class="factor-label">MEASURABILITY</div>
+      <div class="factor-val" style="color:${measurability>=60?'#4a9':'#ea5'}">${measurability}/100</div>
+      <div style="font-size:12px; color:#777; margin-top:4px;">Can you tell if Claude followed it?</div>
+    </div>
+    <div class="rating-factor">
+      <div class="factor-label">ACTIONABILITY</div>
+      <div class="factor-val" style="color:${actionability>=60?'#4a9':'#ea5'}">${actionability}/100</div>
+      <div style="font-size:12px; color:#777; margin-top:4px;">Does it tell Claude what to DO?</div>
+    </div>
+    <div class="rating-factor">
+      <div class="factor-label">EMPHASIS</div>
+      <div class="factor-val" style="color:${emphasis>=40?'#4a9':'#ea5'}">${emphasis}/100</div>
+      <div style="font-size:12px; color:#777; margin-top:4px;">Does it signal its own importance?</div>
+    </div>
+  `;
+
+  if (tips.length > 0) {
+    document.getElementById('ratingTip').innerHTML = `<div class="callout"><strong>Suggestions:</strong><br><br>${tips.map(t => '→ ' + t).join('<br><br>')}</div>`;
+  } else {
+    document.getElementById('ratingTip').innerHTML = '';
+  }
+}
+
+function clearRater() {
+  document.getElementById('raterInput').value = '';
+  document.getElementById('ratingResult').style.display = 'none';
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+buildHeatmap();
+</script>
+</body>
+</html>

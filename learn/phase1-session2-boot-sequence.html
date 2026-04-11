@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 1, Session 2: What Claude Sees at Session Start</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #1a1a1a; color: #e0e0e0;
+    line-height: 1.6; padding: 20px; max-width: 900px; margin: 0 auto;
+  }
+  h1 { color: #C8956C; font-size: 28px; margin-bottom: 5px; }
+  h2 { color: #C8956C; font-size: 22px; margin: 30px 0 15px; }
+  h3 { color: #fff; font-size: 18px; margin: 20px 0 10px; }
+  .subtitle { color: #999; font-size: 14px; margin-bottom: 30px; }
+  .section { background: #242424; border-radius: 12px; padding: 24px; margin: 20px 0; }
+  .callout {
+    background: #2a2318; border-left: 4px solid #C8956C;
+    padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0;
+  }
+  .callout strong { color: #C8956C; }
+  .warning {
+    background: #2a1f1f; border-left: 4px solid #e74c3c;
+    padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0;
+  }
+  .warning strong { color: #e74c3c; }
+  .insight {
+    background: #1a2a20; border-left: 4px solid #4a9;
+    padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0;
+  }
+  .insight strong { color: #4a9; }
+  .analogy {
+    background: #1a2020; border: 1px solid #2a4040;
+    padding: 20px; border-radius: 10px; margin: 15px 0;
+  }
+  .analogy-label { color: #5ba; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  code { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #C8956C; }
+  table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+  th { text-align: left; padding: 10px 12px; background: #2a2a2a; color: #C8956C; font-size: 14px; }
+  td { padding: 10px 12px; border-bottom: 1px solid #333; font-size: 14px; }
+  tr:hover td { background: #2a2a2a; }
+
+  /* Boot Sequence Timeline */
+  .timeline { position: relative; margin: 30px 0; padding-left: 40px; }
+  .timeline::before {
+    content: ''; position: absolute; left: 15px; top: 0; bottom: 0;
+    width: 3px; background: linear-gradient(to bottom, #C8956C, #444);
+  }
+  .step {
+    position: relative; margin-bottom: 0; cursor: pointer;
+    transition: all 0.3s;
+  }
+  .step-dot {
+    position: absolute; left: -33px; top: 18px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #333; border: 3px solid #555;
+    transition: all 0.3s; z-index: 2;
+  }
+  .step.active .step-dot { background: #C8956C; border-color: #C8956C; box-shadow: 0 0 12px rgba(200,149,108,0.4); }
+  .step.completed .step-dot { background: #4a9; border-color: #4a9; }
+  .step-content {
+    background: #2a2a2a; border-radius: 10px; padding: 18px 20px;
+    margin-bottom: 12px; border: 1px solid #333;
+    transition: all 0.3s;
+  }
+  .step.active .step-content { border-color: #C8956C; background: #2d2518; }
+  .step.completed .step-content { border-color: #3a5a4a; }
+  .step-header { display: flex; justify-content: space-between; align-items: center; }
+  .step-title { font-weight: bold; font-size: 15px; }
+  .step-meta { font-size: 12px; color: #777; font-family: monospace; }
+  .step-detail {
+    max-height: 0; overflow: hidden; transition: max-height 0.4s ease;
+    font-size: 14px; color: #bbb; line-height: 1.7;
+  }
+  .step.active .step-detail { max-height: 800px; margin-top: 12px; }
+  .step-who {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: bold; margin-top: 6px;
+  }
+  .who-anthropic { background: #2d1a1a; color: #e77; }
+  .who-system { background: #1a2d1a; color: #7e7; }
+  .who-you { background: #1a1a2d; color: #77e; }
+  .who-claude { background: #2d2a1a; color: #C8956C; }
+
+  /* Comparison: Chat vs Cowork vs Code */
+  .compare-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 20px 0;
+  }
+  .compare-card {
+    background: #2a2a2a; border-radius: 10px; padding: 16px;
+    border: 1px solid #333; cursor: pointer; transition: all 0.3s;
+  }
+  .compare-card:hover { border-color: #C8956C; }
+  .compare-card.selected { border-color: #C8956C; background: #2d2518; }
+  .compare-card h4 { color: #C8956C; margin-bottom: 8px; font-size: 15px; }
+  .compare-card .boot-list { list-style: none; font-size: 13px; }
+  .compare-card .boot-list li { padding: 3px 0; border-bottom: 1px solid #333; }
+  .compare-card .boot-list li:last-child { border: none; }
+  .boot-check { color: #4a9; margin-right: 6px; }
+  .boot-x { color: #e55; margin-right: 6px; }
+  .boot-maybe { color: #ea5; margin-right: 6px; }
+
+  /* Animated boot sequence */
+  .boot-sim {
+    background: #111; border: 1px solid #333; border-radius: 10px;
+    padding: 20px; font-family: 'Courier New', monospace; font-size: 13px;
+    max-height: 400px; overflow-y: auto; margin: 20px 0;
+  }
+  .boot-line { padding: 3px 0; opacity: 0; transition: opacity 0.5s; }
+  .boot-line.visible { opacity: 1; }
+  .boot-line .timestamp { color: #666; }
+  .boot-line .action { color: #4a9; }
+  .boot-line .data { color: #C8956C; }
+  .boot-line .dim { color: #555; }
+  .boot-line .warn { color: #ea5; }
+  .boot-line .highlight { color: #fff; font-weight: bold; }
+
+  .play-btn {
+    background: #C8956C; color: #1a1a1a; border: none;
+    padding: 12px 28px; border-radius: 8px; cursor: pointer;
+    font-size: 15px; font-weight: bold; transition: all 0.2s;
+  }
+  .play-btn:hover { background: #d4a57c; }
+  .play-btn:disabled { background: #555; cursor: not-allowed; }
+
+  .next-session {
+    background: #2a2518; border: 2px solid #C8956C; border-radius: 12px;
+    padding: 24px; margin: 30px 0; text-align: center;
+  }
+  .next-session h3 { color: #C8956C; }
+
+  /* Context snapshot diagram */
+  .snapshot-container {
+    display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap;
+  }
+  .snapshot-card {
+    flex: 1; min-width: 250px;
+    background: #2a2a2a; border-radius: 10px; padding: 16px;
+    border-top: 3px solid #555;
+  }
+  .snapshot-card h4 { font-size: 14px; margin-bottom: 10px; }
+  .snapshot-card.before { border-top-color: #e55; }
+  .snapshot-card.after { border-top-color: #4a9; }
+  .snapshot-card ul { list-style: none; font-size: 13px; }
+  .snapshot-card li { padding: 4px 0; }
+</style>
+</head>
+<body>
+
+<h1>Phase 1, Session 2</h1>
+<div class="subtitle">What Claude Sees at Session Start — The Boot Sequence</div>
+
+<div class="section">
+  <h2>The Big Idea</h2>
+  <p>When you open a new session, Claude doesn't just "wake up." There's a precise loading sequence. Things arrive in a specific order, and that order matters because it creates a priority stack: earlier = more foundational, later = more immediately relevant.</p>
+
+  <div class="analogy">
+    <div class="analogy-label">Analogy</div>
+    <strong style="color:#fff">Think of it like booting a computer.</strong> The BIOS loads first (Anthropic's system prompt). Then the OS kernel (CLAUDE.md). Then drivers and services (rules files, supplements). Then the user logs in (your first message). Each layer depends on the ones below it. You wouldn't expect to configure Wi-Fi before the network driver is loaded. Same principle.
+  </div>
+
+  <p style="margin-top: 15px;">Understanding this order is practical, not theoretical. It tells you where to put different kinds of instructions, why some things "stick" better than others, and why your Team Claude architecture works the way it does.</p>
+</div>
+
+<div class="section">
+  <h2>The Boot Sequence — Step by Step</h2>
+  <p style="margin-bottom: 15px;">Click each step to see exactly what loads and who controls it.</p>
+
+  <div class="timeline" id="bootTimeline">
+
+    <div class="step" onclick="toggleStep(this)">
+      <div class="step-dot"></div>
+      <div class="step-content">
+        <div class="step-header">
+          <span class="step-title">Step 1: Anthropic's System Prompt</span>
+          <span class="step-meta">~4,000 tokens</span>
+        </div>
+        <div class="step-detail">
+          <span class="step-who who-anthropic">Anthropic controls this</span>
+          <p style="margin-top:10px">Before you say a word, Anthropic has already given Claude its baseline instructions. This includes safety guidelines, formatting rules, how to use tools, the knowledge cutoff date, and behavioral guidance.</p>
+          <p style="margin-top:8px">In Cowork specifically, this also includes: your user preferences (the ones you set in settings), your name and email, the list of available skills, instructions for how to handle files, and how to use computer-use tools.</p>
+          <p style="margin-top:8px"><strong style="color:#C8956C">What you can't change:</strong> Safety behavior, core personality, tool schemas.</p>
+          <p style="margin-top:8px"><strong style="color:#C8956C">What you CAN influence:</strong> Your user preferences setting ("Use quick and clever humor," "don't use em dashes," etc.) gets injected into the system prompt. This is why those preferences work across sessions without being in CLAUDE.md.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" onclick="toggleStep(this)">
+      <div class="step-dot"></div>
+      <div class="step-content">
+        <div class="step-header">
+          <span class="step-title">Step 2: CLAUDE.md Loads</span>
+          <span class="step-meta">~1,500 tokens</span>
+        </div>
+        <div class="step-detail">
+          <span class="step-who who-you">You control this</span>
+          <p style="margin-top:10px">Your CLAUDE.md file is read automatically. It typically sets identity ("You are [role], working for [company]"), defines the organization, links to a knowledge map, lists connected tools, and establishes session rules.</p>
+          <p style="margin-top:8px">Critically, CLAUDE.md also contains <code>@-import</code> references that pull in additional files.</p>
+          <p style="margin-top:8px"><strong style="color:#C8956C">Why this matters:</strong> CLAUDE.md is the ONLY file that loads automatically. Everything else requires either an @-import or an explicit read action. This is why CLAUDE.md is the most important file in your entire setup. If it's wrong, everything downstream is wrong.</p>
+          <p style="margin-top:8px"><strong style="color:#C8956C">Token trade-off:</strong> Every line in CLAUDE.md costs you on every single message. A 50-line CLAUDE.md vs. a 500-line CLAUDE.md is the difference between ~500 tokens/turn overhead and ~5,000 tokens/turn overhead. Yours is lean by design. The knowledge map alone saves thousands of tokens by pointing to files instead of including their content.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" onclick="toggleStep(this)">
+      <div class="step-dot"></div>
+      <div class="step-content">
+        <div class="step-header">
+          <span class="step-title">Step 3: @-Imported Rules Files Load</span>
+          <span class="step-meta">~2,000 tokens</span>
+        </div>
+        <div class="step-detail">
+          <span class="step-who who-you">You control this</span>
+          <p style="margin-top:10px">The four <code>@.claude/rules/</code> files referenced in CLAUDE.md load as part of the boot context:</p>
+          <ul style="margin: 8px 0 8px 20px; font-size: 14px;">
+            <li><strong>hard-rules.md</strong> — Non-negotiable behaviors (response rules, verification requirements, safety gates)</li>
+            <li><strong>session-protocol.md</strong> — Startup sequence, close-out steps, context lookup order</li>
+            <li><strong>team-structure.md</strong> — Who does what across sessions, messaging, role boundaries</li>
+            <li><strong>domain-rules.md</strong> — Domain-specific rules for the session's primary focus area</li>
+          </ul>
+          <p style="margin-top:8px"><strong style="color:#C8956C">Why separate files instead of one big CLAUDE.md?</strong> Three reasons:</p>
+          <p style="margin-top:4px">1. <strong>Maintenance:</strong> Update marketing rules without touching core identity.</p>
+          <p style="margin-top:4px">2. <strong>Reusability:</strong> hard-rules.md could be shared across sessions (same rules, different roles).</p>
+          <p style="margin-top:4px">3. <strong>Clarity:</strong> When Claude violates a rule, you know exactly which file to check.</p>
+          <p style="margin-top:8px">The downside? They ALL load at boot, so modularity doesn't save tokens. It saves your sanity.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" onclick="toggleStep(this)">
+      <div class="step-dot"></div>
+      <div class="step-content">
+        <div class="step-header">
+          <span class="step-title">Step 4: Your First Message Arrives</span>
+          <span class="step-meta">varies</span>
+        </div>
+        <div class="step-detail">
+          <span class="step-who who-you">You control this</span>
+          <p style="margin-top:10px">Now Claude has its foundation (system prompt + CLAUDE.md + rules) and receives your first message. At this point, Claude "wakes up" — it can see everything loaded so far and your request.</p>
+          <p style="margin-top:8px"><strong style="color:#C8956C">What Claude knows at this exact moment:</strong></p>
+          <ul style="margin: 8px 0 8px 20px; font-size: 14px;">
+            <li>Who it is (its role and identity from CLAUDE.md)</li>
+            <li>Who you are (your name, role, and context from CLAUDE.md)</li>
+            <li>All hard rules and session protocols</li>
+            <li>What tools are connected</li>
+            <li>Your format preferences</li>
+          </ul>
+          <p style="margin-top:8px"><strong style="color:#C8956C">What Claude does NOT know yet:</strong></p>
+          <ul style="margin: 8px 0 8px 20px; font-size: 14px;">
+            <li>Product-specific details (supplements not loaded yet)</li>
+            <li>What happened last session (no session memory loaded)</li>
+            <li>Current system state (hasn't run any tools yet)</li>
+            <li>What's in the KB (hasn't searched yet)</li>
+            <li>Messages from other sessions (hasn't checked inbox)</li>
+          </ul>
+          <p style="margin-top:8px">This is exactly why the session startup protocol exists — to fill in these gaps in a deliberate order.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" onclick="toggleStep(this)">
+      <div class="step-dot"></div>
+      <div class="step-content">
+        <div class="step-header">
+          <span class="step-title">Step 5: Session Startup Protocol Runs</span>
+          <span class="step-meta">~8,000-15,000 tokens (tool results)</span>
+        </div>
+        <div class="step-detail">
+          <span class="step-who who-claude">Claude executes this</span>
+          <p style="margin-top:10px">This is Claude following the startup protocol from session-protocol.md. Each step is a tool call, and each tool result lands in the context window. A typical startup might look like:</p>
+          <ol style="margin: 8px 0 8px 20px; font-size: 14px;">
+            <li>Identify environment (what machine/interface am I on?)</li>
+            <li>Load supplements (read product/project context files)</li>
+            <li>KB orientation (run knowledge base searches for current state)</li>
+            <li>Read open tasks (what's in progress?)</li>
+            <li>Check for new messages or alerts</li>
+            <li>Review active priorities</li>
+            <li>Wait for direction</li>
+          </ol>
+          <p style="margin-top:8px"><strong style="color:#C8956C">The token cost:</strong> A thorough startup sequence consumes 8,000-15,000 tokens. That's the price of Claude being properly informed. Without it, Claude would be flying blind on current state. With it, Claude starts every session knowing what matters right now.</p>
+          <p style="margin-top:8px"><strong style="color:#C8956C">Key design choice:</strong> Good startup protocols use on-demand retrieval (pull from KB) rather than loading entire files into CLAUDE.md. Each query returns a small, targeted result. Loading the same docs into boot context would cost 10x more tokens on every turn for the rest of the session.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" onclick="toggleStep(this)">
+      <div class="step-dot"></div>
+      <div class="step-content">
+        <div class="step-header">
+          <span class="step-title">Step 6: Session Is Live</span>
+          <span class="step-meta">~20,000 tokens consumed so far</span>
+        </div>
+        <div class="step-detail">
+          <span class="step-who who-claude">Ready to work</span>
+          <p style="margin-top:10px">At this point, Claude has consumed roughly 20,000 tokens (10% of the 200K window) just getting oriented. The remaining 180,000 tokens are available for actual work.</p>
+          <p style="margin-top:8px">This is the most productive moment of the session. Claude has full context, maximum thinking room, and strong attention on all loaded instructions.</p>
+          <p style="margin-top:8px"><strong style="color:#C8956C">The takeaway:</strong> The boot sequence is an investment. You're spending ~20K tokens to make the remaining ~180K tokens count. A session without this startup would have 200K tokens available but produce worse results because Claude wouldn't know the current state of anything.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <h2>Watch It Boot</h2>
+  <p>This simulates what happens when a Cowork session starts. Watch the context window fill up in real time.</p>
+  <button class="play-btn" id="playBtn" onclick="runBootSim()">Play Boot Sequence</button>
+  <button class="play-btn" style="background:#444; color:#ddd; margin-left:10px;" onclick="resetBootSim()">Reset</button>
+
+  <div class="boot-sim" id="bootSim">
+    <div class="boot-line visible"><span class="dim">Waiting to start...</span></div>
+  </div>
+
+  <div style="margin-top: 12px; display: flex; justify-content: space-between; font-size: 13px; color: #666;">
+    <span>Context used: <span id="tokenCounter" style="color: #C8956C; font-family: monospace;">0</span> / 200,000 tokens</span>
+    <span>Available: <span id="tokenAvail" style="color: #4a9; font-family: monospace;">200,000</span></span>
+  </div>
+  <div style="height: 6px; background: #333; border-radius: 3px; margin-top: 6px; overflow: hidden;">
+    <div id="tokenBar" style="height: 100%; width: 0%; background: linear-gradient(to right, #C8956C, #e74c3c); transition: width 0.5s; border-radius: 3px;"></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Three Interfaces, Three Boot Experiences</h2>
+  <p>Claude starts differently depending on which interface you're using. Click each to compare.</p>
+
+  <div class="compare-grid">
+    <div class="compare-card selected" onclick="selectCompare(this, 'cowork')">
+      <h4>Cowork</h4>
+      <ul class="boot-list">
+        <li><span class="boot-check">&#10003;</span> System prompt with skills list</li>
+        <li><span class="boot-check">&#10003;</span> User preferences injected</li>
+        <li><span class="boot-check">&#10003;</span> CLAUDE.md auto-loads</li>
+        <li><span class="boot-check">&#10003;</span> @-imported rules load</li>
+        <li><span class="boot-check">&#10003;</span> Connected MCP tools listed</li>
+        <li><span class="boot-check">&#10003;</span> File access (workspace folder)</li>
+        <li><span class="boot-check">&#10003;</span> Computer use available</li>
+        <li><span class="boot-check">&#10003;</span> Sandbox shell available</li>
+      </ul>
+    </div>
+
+    <div class="compare-card" onclick="selectCompare(this, 'desktop')">
+      <h4>Claude Desktop</h4>
+      <ul class="boot-list">
+        <li><span class="boot-check">&#10003;</span> System prompt (different from Cowork)</li>
+        <li><span class="boot-check">&#10003;</span> User preferences</li>
+        <li><span class="boot-check">&#10003;</span> CLAUDE.md auto-loads</li>
+        <li><span class="boot-check">&#10003;</span> @-imported rules load</li>
+        <li><span class="boot-check">&#10003;</span> Connected MCP tools listed</li>
+        <li><span class="boot-x">&#10007;</span> No direct file access</li>
+        <li><span class="boot-check">&#10003;</span> Computer use available</li>
+        <li><span class="boot-x">&#10007;</span> No sandbox shell</li>
+      </ul>
+    </div>
+
+    <div class="compare-card" onclick="selectCompare(this, 'code')">
+      <h4>Claude Code</h4>
+      <ul class="boot-list">
+        <li><span class="boot-check">&#10003;</span> System prompt (minimal)</li>
+        <li><span class="boot-x">&#10007;</span> No user prefs injection</li>
+        <li><span class="boot-check">&#10003;</span> CLAUDE.md auto-loads</li>
+        <li><span class="boot-check">&#10003;</span> @-imported rules load</li>
+        <li><span class="boot-check">&#10003;</span> MCP tools if configured</li>
+        <li><span class="boot-check">&#10003;</span> Full filesystem access</li>
+        <li><span class="boot-x">&#10007;</span> No computer use</li>
+        <li><span class="boot-check">&#10003;</span> Native terminal/shell</li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="compareDetail" class="callout">
+    <strong>Cowork:</strong> The richest boot experience. Anthropic's system prompt includes skill descriptions, file handling instructions, computer-use guidance, and your personal preferences. The trade-off is this system prompt is the largest of the three, eating more of your token budget before you say anything. Your CLAUDE.md then layers on top with your specific identity and rules.
+  </div>
+</div>
+
+<div class="section">
+  <h2>The Priority Stack</h2>
+  <p>Where something appears in the boot sequence affects how much "weight" Claude gives it. This isn't a bug — it's how attention works in transformer models.</p>
+
+  <table>
+    <tr><th>Priority Level</th><th>What Goes Here</th><th>Example</th></tr>
+    <tr>
+      <td><strong style="color:#e55">Highest: System Prompt</strong></td>
+      <td>Core behavioral rules that should never be overridden</td>
+      <td>Safety rules, tool schemas, user formatting preferences</td>
+    </tr>
+    <tr>
+      <td><strong style="color:#ea5">High: CLAUDE.md + Rules</strong></td>
+      <td>Identity and operational rules you want followed consistently</td>
+      <td>"You are [role]," response rules, scope boundaries, knowledge map</td>
+    </tr>
+    <tr>
+      <td><strong style="color:#C8956C">Medium: Supplements</strong></td>
+      <td>Product context that frames the work but doesn't need constant enforcement</td>
+      <td>Product feature list, current sprint state, pricing details</td>
+    </tr>
+    <tr>
+      <td><strong style="color:#4a9">Active: Recent Messages</strong></td>
+      <td>The current conversation — highest attention, highest recency</td>
+      <td>"Fix the login bug" or "Write a blog post about X"</td>
+    </tr>
+  </table>
+
+  <div class="insight">
+    <strong>Practical implication:</strong> If you want something followed every time, put it in a rules file (high priority, always loaded). If you want something followed right now, say it in your message (highest recency). If you want it available when relevant, put it in a knowledge base (zero boot cost, retrieved on demand). That's the decision tree for "where does this instruction live?"
+  </div>
+</div>
+
+<div class="section">
+  <h2>What the Other Models Do Differently</h2>
+  <p>Quick comparison so you start building a mental model of the landscape.</p>
+
+  <table>
+    <tr><th>Concept</th><th>Claude</th><th>ChatGPT</th><th>Gemini</th></tr>
+    <tr>
+      <td>Boot context file</td>
+      <td><code>CLAUDE.md</code> — automatic, file-based, version-controlled</td>
+      <td>"Custom Instructions" or "GPT Instructions" — entered in a form, limited to 1,500 chars</td>
+      <td>"Gems" — similar to Custom GPTs, less mature</td>
+    </tr>
+    <tr>
+      <td>Rules files</td>
+      <td>@-import any .md file from .claude/rules/</td>
+      <td>Not supported natively</td>
+      <td>Not supported natively</td>
+    </tr>
+    <tr>
+      <td>Tool connections</td>
+      <td>MCP — open protocol, any tool can plug in</td>
+      <td>Actions (OpenAPI-based), more restricted</td>
+      <td>Extensions (Google ecosystem mostly)</td>
+    </tr>
+    <tr>
+      <td>Multi-session</td>
+      <td>Independent sessions share nothing by default — you build the bridges (KB, messages, handoffs)</td>
+      <td>Single conversation memory — "remembers" across chats but you can't control what it keeps</td>
+      <td>Limited memory, tied to Google account</td>
+    </tr>
+    <tr>
+      <td>Your control</td>
+      <td style="color:#4a9"><strong>Maximum.</strong> You control the files that control behavior.</td>
+      <td style="color:#ea5">Moderate. Form fields, no file system.</td>
+      <td style="color:#e55">Minimal. Google controls the integration points.</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <strong>Why this matters:</strong> Claude's approach (file-based configuration, open protocol tools, explicit context management) is more work to set up but gives you dramatically more control. ChatGPT's approach is easier to start but hits a ceiling fast. A multi-session setup with a shared knowledge base and structured handoffs is literally impossible in ChatGPT. Not hard. Impossible.
+  </div>
+</div>
+
+<div class="section">
+  <h2>Key Takeaways</h2>
+
+  <div class="callout">
+    <strong>1. Boot order = priority order.</strong> System prompt outweighs CLAUDE.md outweighs supplements outweighs conversation. Put critical rules where they'll have the most weight.
+  </div>
+
+  <div class="callout">
+    <strong>2. Auto-load is expensive but powerful.</strong> CLAUDE.md and rules files cost you tokens on every turn. That's by design. They're the instructions you need followed consistently enough to pay the tax.
+  </div>
+
+  <div class="callout">
+    <strong>3. The startup protocol is an investment.</strong> Those 10 steps consume ~20K tokens, but they mean Claude starts every session with real situational awareness instead of just its rule book.
+  </div>
+
+  <div class="callout">
+    <strong>4. Architecture is everything.</strong> Modular rules, lean CLAUDE.md, knowledge base for retrieval, supplements for product context — these aren't arbitrary choices. They're each solving a specific context window constraint. Understanding why it works gives you the framework to make better decisions about where to put new instructions.
+  </div>
+</div>
+
+<div class="next-session">
+  <h3>Next: Phase 1, Session 3</h3>
+  <p style="margin-top:10px; color:#ccc">Tokens: The Real Currency — what a token physically is, why "200K context" is not 200K words, and counting real tokens from our CLAUDE.md.</p>
+  <p style="margin-top:5px; color:#999; font-size:13px">We'll use a real-time tokenizer to see exactly what different types of content cost — and why your CLAUDE.md is pricier than it looks.</p>
+</div>
+
+<script>
+function toggleStep(el) {
+  const wasActive = el.classList.contains('active');
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  if (!wasActive) el.classList.add('active');
+}
+
+const compareDetails = {
+  cowork: '<strong>Cowork:</strong> The richest boot experience. Anthropic\'s system prompt includes skill descriptions, file handling instructions, computer-use guidance, and your personal preferences. The trade-off is this system prompt is the largest of the three, eating more of your token budget before you say anything. Your CLAUDE.md then layers on top with NexHam-specific identity and rules.',
+  desktop: '<strong>Claude Desktop (Dev C / Ops C):</strong> Similar to Cowork but with a different system prompt focused on chat-based interaction. No sandbox shell — Dev C and Ops C use mac-shell MCP or computer-use to interact with the filesystem. Same CLAUDE.md auto-load. Same MCP tool connections. The key difference: no built-in file workspace, so everything goes through tools.',
+  code: '<strong>Claude Code (CC):</strong> The leanest boot. Minimal system prompt focused on coding. No user preferences injection. But it has something the others don\'t: direct filesystem access and native terminal integration. CLAUDE.md still loads automatically. This is why CC is your task executor — it boots fast, has filesystem power, but has no persistent context between tasks.'
+};
+
+function selectCompare(el, key) {
+  document.querySelectorAll('.compare-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('compareDetail').innerHTML = compareDetails[key];
+}
+
+// Boot sequence simulation
+const bootLines = [
+  { delay: 0, text: '<span class="timestamp">[00:00.0]</span> <span class="action">SESSION START</span> <span class="dim">— new Cowork session initialized</span>', tokens: 0 },
+  { delay: 400, text: '<span class="timestamp">[00:00.1]</span> <span class="action">LOAD</span> <span class="data">System prompt</span> <span class="dim">— Anthropic behavioral rules, tool schemas, skill list, user prefs</span>', tokens: 4000 },
+  { delay: 600, text: '<span class="timestamp">[00:00.2]</span> <span class="action">LOAD</span> <span class="data">CLAUDE.md</span> <span class="dim">— "You are [role], the [function] assistant for [company]..."</span>', tokens: 5500 },
+  { delay: 500, text: '<span class="timestamp">[00:00.3]</span> <span class="action">LOAD</span> <span class="data">hard-rules.md</span> <span class="dim">— non-negotiable behavioral rules</span>', tokens: 6200 },
+  { delay: 400, text: '<span class="timestamp">[00:00.3]</span> <span class="action">LOAD</span> <span class="data">session-protocol.md</span> <span class="dim">— startup sequence, close-out, context order</span>', tokens: 6800 },
+  { delay: 400, text: '<span class="timestamp">[00:00.4]</span> <span class="action">LOAD</span> <span class="data">team-structure.md</span> <span class="dim">— roles, responsibilities, boundaries</span>', tokens: 7200 },
+  { delay: 400, text: '<span class="timestamp">[00:00.4]</span> <span class="action">LOAD</span> <span class="data">domain-rules.md</span> <span class="dim">— domain-specific rules for this session</span>', tokens: 7800 },
+  { delay: 800, text: '<span class="timestamp">[00:00.5]</span> <span class="highlight">BOOT CONTEXT COMPLETE</span> <span class="dim">— Claude is now "awake" with identity + rules</span>', tokens: 7800 },
+  { delay: 600, text: '<span class="timestamp">[00:01.0]</span> <span class="action">USER MSG</span> <span class="dim">— your first message arrives</span>', tokens: 8000 },
+  { delay: 1000, text: '<span class="timestamp">[00:01.5]</span> <span class="action">PROTOCOL</span> Step 1: <span class="data">Identify environment</span> <span class="dim">→ which machine/interface am I on?</span>', tokens: 8200 },
+  { delay: 600, text: '<span class="timestamp">[00:02.0]</span> <span class="action">PROTOCOL</span> Step 2: <span class="data">Read supplements</span> <span class="dim">→ product/project context files</span>', tokens: 11000 },
+  { delay: 800, text: '<span class="timestamp">[00:03.0]</span> <span class="action">PROTOCOL</span> Step 3: <span class="data">KB orientation</span> <span class="dim">→ knowledge base queries for current state</span>', tokens: 13500 },
+  { delay: 600, text: '<span class="timestamp">[00:04.0]</span> <span class="action">PROTOCOL</span> Step 4: <span class="data">Read open tasks</span> <span class="dim">→ what\'s in progress right now?</span>', tokens: 15000 },
+  { delay: 400, text: '<span class="timestamp">[00:04.5]</span> <span class="action">PROTOCOL</span> Step 5: <span class="data">Check alerts</span> <span class="dim">→ anything urgent since last session?</span>', tokens: 15800 },
+  { delay: 400, text: '<span class="timestamp">[00:05.0]</span> <span class="action">PROTOCOL</span> Step 6: <span class="data">Check messages</span> <span class="dim">→ any cross-session communications?</span>', tokens: 16500 },
+  { delay: 600, text: '<span class="timestamp">[00:05.5]</span> <span class="action">PROTOCOL</span> Step 7: <span class="data">Review priorities</span> <span class="dim">→ active projects and missions</span>', tokens: 18500 },
+  { delay: 800, text: '<span class="timestamp">[00:06.0]</span> <span class="highlight">SESSION READY</span> <span class="dim">— ~19,000 tokens used, ~181,000 available for work</span>', tokens: 19000 },
+  { delay: 400, text: '<span class="timestamp">[00:06.0]</span> <span class="action">PROTOCOL</span> Complete: <span class="dim">Waiting for your direction...</span>', tokens: 19000 },
+];
+
+let simRunning = false;
+function runBootSim() {
+  if (simRunning) return;
+  simRunning = true;
+  const sim = document.getElementById('bootSim');
+  const btn = document.getElementById('playBtn');
+  btn.disabled = true;
+  sim.innerHTML = '';
+
+  let totalDelay = 0;
+  bootLines.forEach((line, i) => {
+    totalDelay += line.delay;
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.className = 'boot-line';
+      div.innerHTML = line.text;
+      sim.appendChild(div);
+      setTimeout(() => div.classList.add('visible'), 50);
+      sim.scrollTop = sim.scrollHeight;
+
+      document.getElementById('tokenCounter').textContent = line.tokens.toLocaleString();
+      document.getElementById('tokenAvail').textContent = (200000 - line.tokens).toLocaleString();
+      document.getElementById('tokenBar').style.width = (line.tokens / 200000 * 100) + '%';
+
+      if (i === bootLines.length - 1) {
+        simRunning = false;
+        btn.disabled = false;
+      }
+    }, totalDelay);
+  });
+}
+
+function resetBootSim() {
+  simRunning = false;
+  document.getElementById('playBtn').disabled = false;
+  document.getElementById('bootSim').innerHTML = '<div class="boot-line visible"><span class="dim">Waiting to start...</span></div>';
+  document.getElementById('tokenCounter').textContent = '0';
+  document.getElementById('tokenAvail').textContent = '200,000';
+  document.getElementById('tokenBar').style.width = '0%';
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 1, Session 1: The Context Window — How Claude Thinks</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #1a1a1a; color: #e0e0e0;
+    line-height: 1.6; padding: 20px;
+  }
+  h1 { color: #C8956C; font-size: 28px; margin-bottom: 5px; }
+  h2 { color: #C8956C; font-size: 22px; margin: 30px 0 15px; }
+  h3 { color: #fff; font-size: 18px; margin: 20px 0 10px; }
+  .subtitle { color: #999; font-size: 14px; margin-bottom: 30px; }
+  .section { background: #242424; border-radius: 12px; padding: 24px; margin: 20px 0; }
+  .callout {
+    background: #2a2318; border-left: 4px solid #C8956C;
+    padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0;
+  }
+  .callout strong { color: #C8956C; }
+  .warning {
+    background: #2a1f1f; border-left: 4px solid #e74c3c;
+    padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0;
+  }
+  .warning strong { color: #e74c3c; }
+
+  /* Context Window Visualizer */
+  .window-container {
+    display: flex; flex-direction: column; gap: 0;
+    border: 2px solid #444; border-radius: 12px; overflow: hidden;
+    margin: 20px 0; max-width: 800px;
+  }
+  .window-layer {
+    padding: 16px 20px; cursor: pointer; transition: all 0.3s;
+    border-bottom: 1px solid #333; position: relative;
+  }
+  .window-layer:last-child { border-bottom: none; }
+  .window-layer:hover { filter: brightness(1.2); }
+  .window-layer.active { filter: brightness(1.3); }
+  .layer-header { display: flex; justify-content: space-between; align-items: center; }
+  .layer-name { font-weight: bold; font-size: 15px; }
+  .layer-tokens { font-size: 13px; color: #999; font-family: monospace; }
+  .layer-detail {
+    max-height: 0; overflow: hidden; transition: max-height 0.4s ease;
+    font-size: 14px; color: #bbb; line-height: 1.7;
+  }
+  .window-layer.active .layer-detail { max-height: 600px; margin-top: 12px; }
+  .expand-hint { color: #666; font-size: 12px; }
+
+  .l-system { background: #1a2a1a; }
+  .l-claude { background: #1a1a2a; }
+  .l-rules { background: #2a1a2a; }
+  .l-supplement { background: #2a2a1a; }
+  .l-history { background: #1a2a2a; }
+  .l-user { background: #2a1f1a; }
+  .l-thinking { background: #1f1a2a; }
+  .l-empty { background: #1d1d1d; border: 2px dashed #333; }
+
+  /* Token Meter */
+  .meter-container { margin: 20px 0; max-width: 800px; }
+  .meter-bar {
+    height: 40px; background: #333; border-radius: 8px;
+    overflow: hidden; position: relative;
+  }
+  .meter-fill {
+    height: 100%; transition: width 0.8s ease; display: flex;
+  }
+  .meter-segment {
+    height: 100%; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: bold; color: rgba(255,255,255,0.9);
+    transition: width 0.8s ease; overflow: hidden; white-space: nowrap;
+  }
+  .meter-labels { display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; color: #666; }
+  .meter-legend { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+  /* Scenario Buttons */
+  .scenarios { display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0; }
+  .scenario-btn {
+    background: #333; border: 1px solid #555; color: #ddd;
+    padding: 10px 18px; border-radius: 8px; cursor: pointer;
+    font-size: 14px; transition: all 0.2s;
+  }
+  .scenario-btn:hover { background: #444; border-color: #C8956C; }
+  .scenario-btn.active { background: #3a2a1a; border-color: #C8956C; color: #C8956C; }
+
+  /* Analogy Box */
+  .analogy {
+    background: #1a2020; border: 1px solid #2a4040;
+    padding: 20px; border-radius: 10px; margin: 15px 0;
+  }
+  .analogy-label { color: #5ba; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+
+  /* Comparison Table */
+  table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+  th { text-align: left; padding: 10px 12px; background: #2a2a2a; color: #C8956C; font-size: 14px; }
+  td { padding: 10px 12px; border-bottom: 1px solid #333; font-size: 14px; }
+  tr:hover td { background: #2a2a2a; }
+
+  .next-session {
+    background: #2a2518; border: 2px solid #C8956C; border-radius: 12px;
+    padding: 24px; margin: 30px 0; text-align: center;
+  }
+  .next-session h3 { color: #C8956C; }
+
+  code { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #C8956C; }
+</style>
+</head>
+<body>
+
+<h1>Phase 1, Session 1</h1>
+<div class="subtitle">The Context Window — What Claude Actually Sees</div>
+
+<div class="section">
+  <h2>The Big Idea</h2>
+  <p>Every time you talk to Claude, Claude doesn't "remember" your previous conversations. It doesn't have a brain that stores memories. Instead, it has a <strong style="color:#C8956C">context window</strong> — a fixed-size workspace where everything Claude can "see" right now lives.</p>
+
+  <p style="margin-top:12px">Think of it as a desk. Everything Claude needs to do its job has to fit on this desk. If the desk fills up, older stuff gets pushed off the edge. When a new session starts, the desk is cleared and reset.</p>
+
+  <div class="analogy">
+    <div class="analogy-label">Analogy</div>
+    <strong style="color:#fff">Imagine you're a contractor who gets amnesia every night.</strong> Each morning, someone hands you a briefcase. Inside: your company manual (CLAUDE.md), notes from yesterday's meeting (HANDOFF.md), the client's specifications (supplements), and today's task list (the conversation). Everything you know about the job has to fit in that briefcase. If something isn't in the briefcase, you don't know it. Period.
+  </div>
+</div>
+
+<div class="section">
+  <h2>What's In the Context Window?</h2>
+  <p>Click any layer to see what's inside and why it matters.</p>
+
+  <div class="window-container" id="contextWindow">
+    <div class="window-layer l-system" onclick="toggleLayer(this)">
+      <div class="layer-header">
+        <span class="layer-name">1. System Prompt (Anthropic's instructions)</span>
+        <span class="layer-tokens">~4,000 tokens</span>
+      </div>
+      <div class="layer-detail">
+        <strong>What:</strong> Instructions from Anthropic that tell Claude how to behave — safety rules, formatting guidelines, knowledge cutoff date, and what tools are available.<br><br>
+        <strong>You control this?</strong> No. This is baked in by Anthropic. You never see it, but it's always there, taking up space on the desk.<br><br>
+        <strong>Why it matters:</strong> This is why Claude behaves similarly across all users. The system prompt is the "factory settings." Your CLAUDE.md is your customization on top of these defaults.<br><br>
+        <strong>In Cowork:</strong> The system prompt also includes your available skills list, connected MCP tool descriptions, file handling instructions, and any personal preferences you've set.
+      </div>
+      <div class="expand-hint">click to expand</div>
+    </div>
+
+    <div class="window-layer l-claude" onclick="toggleLayer(this)">
+      <div class="layer-header">
+        <span class="layer-name">2. CLAUDE.md (Your boot context)</span>
+        <span class="layer-tokens">~3,500 tokens</span>
+      </div>
+      <div class="layer-detail">
+        <strong>What:</strong> Your custom instructions. Identity, rules, knowledge map, team structure, tool gotchas, shorthand commands. This is loaded AUTOMATICALLY at the start of every session.<br><br>
+        <strong>You control this?</strong> Yes, 100%. This is your most powerful tool.<br><br>
+        <strong>Why it matters:</strong> Every token in CLAUDE.md is a tax you pay on EVERY interaction. A 3,500-token CLAUDE.md means Claude has 3,500 fewer tokens available for actual work in every single message. This is why "lean boot context" is a conservation measure — not because the content doesn't matter, but because it costs you on every turn.<br><br>
+        <strong>Example setup:</strong> A main CLAUDE.md with @-imported rules files (hard-rules.md, session-protocol.md, team-structure.md). Modular design keeps it organized without bloat — each file has one theme.
+      </div>
+      <div class="expand-hint">click to expand</div>
+    </div>
+
+    <div class="window-layer l-rules" onclick="toggleLayer(this)">
+      <div class="layer-header">
+        <span class="layer-name">3. @-Imported Rules Files</span>
+        <span class="layer-tokens">~2,000 tokens</span>
+      </div>
+      <div class="layer-detail">
+        <strong>What:</strong> Separate .md files pulled in by the <code>@.claude/rules/</code> references in CLAUDE.md. Hard rules, session protocol, team structure, marketing rules.<br><br>
+        <strong>You control this?</strong> Yes. This is an extension of CLAUDE.md — same power, better organization.<br><br>
+        <strong>Why it matters:</strong> By splitting rules into separate files, you can update one area (say, marketing rules) without touching the core CLAUDE.md. But they ALL load at boot, so they ALL count against your token budget.<br><br>
+        <strong>Key insight:</strong> Claude reads these top-to-bottom. Rules at the top of a file get slightly more "attention weight" than rules buried at the bottom. Put your most critical rules first.
+      </div>
+      <div class="expand-hint">click to expand</div>
+    </div>
+
+    <div class="window-layer l-supplement" onclick="toggleLayer(this)">
+      <div class="layer-header">
+        <span class="layer-name">4. Supplements (loaded at startup)</span>
+        <span class="layer-tokens">~2,500 tokens</span>
+      </div>
+      <div class="layer-detail">
+        <strong>What:</strong> Product-specific context files loaded during the session startup protocol. Example: an acme-product-supplement.md that holds current sprint state, pricing details, and feature flags — things that change often and don't belong in the main CLAUDE.md.<br><br>
+        <strong>You control this?</strong> Yes, but these are manually loaded (session protocol says "read supplements at startup"), not auto-loaded like CLAUDE.md.<br><br>
+        <strong>Why it matters:</strong> This is the "Layer 2" of context — product details, current state, recent changes. Keeps CLAUDE.md lean (company-level) while supplements carry product-level detail.<br><br>
+        <strong>The tradeoff:</strong> More supplement = more context = better answers about that product. But also = fewer tokens left for conversation. Finding the right balance is context engineering.
+      </div>
+      <div class="expand-hint">click to expand</div>
+    </div>
+
+    <div class="window-layer l-history" onclick="toggleLayer(this)">
+      <div class="layer-header">
+        <span class="layer-name">5. Conversation History</span>
+        <span class="layer-tokens">grows with each message</span>
+      </div>
+      <div class="layer-detail">
+        <strong>What:</strong> Every message you've sent and every response Claude has given in THIS session. Plus every tool call and its results.<br><br>
+        <strong>You control this?</strong> Indirectly. Longer conversations = more history = more tokens consumed.<br><br>
+        <strong>Why it matters:</strong> This is why sessions get "dumber" over time. Early in a session, most of the context window is available for thinking. Late in a session, the window is packed with conversation history, leaving less room. This is also why compaction happens — when the window fills up, older conversation gets summarized to free space.<br><br>
+        <strong>The hidden cost:</strong> Tool calls are conversation history too. Every <code>search_docs</code> result, every <code>mac-shell</code> output, every file read — it ALL goes into the context window. A single large file read can consume thousands of tokens.<br><br>
+        <strong>Common experience:</strong> "Why does Claude seem to forget rules by the end of a long session?" The rules (CLAUDE.md) are still there — but they're now competing with 50,000+ tokens of conversation for Claude's attention. The rules didn't disappear. They just got crowded out.
+      </div>
+      <div class="expand-hint">click to expand</div>
+    </div>
+
+    <div class="window-layer l-user" onclick="toggleLayer(this)">
+      <div class="layer-header">
+        <span class="layer-name">6. Your Current Message</span>
+        <span class="layer-tokens">varies</span>
+      </div>
+      <div class="layer-detail">
+        <strong>What:</strong> The message you just typed. This is the most recent thing in the context window, which means it gets the highest "attention."<br><br>
+        <strong>You control this?</strong> Completely.<br><br>
+        <strong>Why it matters:</strong> Recency bias is real. Claude pays more attention to recent messages than older ones. This is why repeating an important instruction in your message ("remember, no em dashes") works even if it's already in CLAUDE.md — you're putting it at the point of highest attention.<br><br>
+        <strong>Pro tip:</strong> If Claude is drifting from your rules late in a session, restating the key rule in your message is more effective than hoping Claude is still paying attention to line 47 of hard-rules.md.
+      </div>
+      <div class="expand-hint">click to expand</div>
+    </div>
+
+    <div class="window-layer l-thinking" onclick="toggleLayer(this)">
+      <div class="layer-header">
+        <span class="layer-name">7. Claude's Thinking + Response Space</span>
+        <span class="layer-tokens">whatever's left</span>
+      </div>
+      <div class="layer-detail">
+        <strong>What:</strong> The remaining space in the context window where Claude actually does its work — reasoning through the problem, planning tool calls, composing the response.<br><br>
+        <strong>You control this?</strong> Indirectly — by managing everything above, you determine how much room is left here.<br><br>
+        <strong>Why it matters:</strong> This is the ACTUAL workspace. Everything above is setup. If your CLAUDE.md is 5,000 tokens, your supplements are 3,000, and your conversation history is 80,000... Claude has less room to think. Quality degrades not because Claude is "tired" but because the workspace is cramped.<br><br>
+        <strong>This is why token conservation matters:</strong> It's not just about billing. Less token waste = more thinking room = better output.
+      </div>
+      <div class="expand-hint">click to expand</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>See It In Action: Token Budget</h2>
+  <p>Click a scenario to see how the context window fills up differently depending on the situation.</p>
+
+  <div class="scenarios">
+    <button class="scenario-btn active" onclick="setScenario('fresh')">Fresh Session (start of day)</button>
+    <button class="scenario-btn" onclick="setScenario('mid')">Mid-Session (1 hour in)</button>
+    <button class="scenario-btn" onclick="setScenario('late')">Late Session (3 hours in)</button>
+    <button class="scenario-btn" onclick="setScenario('compacted')">After Compaction</button>
+  </div>
+
+  <div class="meter-container">
+    <div class="meter-bar">
+      <div class="meter-fill" id="meterFill"></div>
+    </div>
+    <div class="meter-labels">
+      <span>0 tokens</span>
+      <span id="windowSize">200,000 tokens</span>
+    </div>
+  </div>
+
+  <div class="meter-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#2d5a2d"></div> System Prompt</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2d2d5a"></div> CLAUDE.md + Rules</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#5a2d5a"></div> Supplements</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2d5a5a"></div> Conversation</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#5a3d1a"></div> Your Message</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3d2d5a"></div> Thinking Space</div>
+  </div>
+
+  <div id="scenarioDescription" class="callout" style="margin-top:20px">
+    <strong>Fresh Session:</strong> Most of the window is empty — available for conversation and thinking. This is when Claude is at its best. CLAUDE.md and rules are loaded, supplements read during startup protocol. Claude has maximum room to think.
+  </div>
+</div>
+
+<div class="section">
+  <h2>Context Window Sizes — What You're Working With</h2>
+  <table>
+    <tr><th>Model</th><th>Context Window</th><th>Roughly...</th></tr>
+    <tr><td>Claude Opus 4.6</td><td>200,000 tokens</td><td>~150,000 words or ~500 pages</td></tr>
+    <tr><td>Claude Sonnet 4.6</td><td>200,000 tokens</td><td>Same size, faster, cheaper</td></tr>
+    <tr><td>Claude Haiku 4.5</td><td>200,000 tokens</td><td>Same size, fastest, cheapest</td></tr>
+    <tr><td style="color:#888">GPT-4o (OpenAI)</td><td style="color:#888">128,000 tokens</td><td style="color:#888">~64% of Claude's window</td></tr>
+    <tr><td style="color:#888">Gemini 1.5 Pro (Google)</td><td style="color:#888">1,000,000+ tokens</td><td style="color:#888">5x Claude — but accuracy drops at the edges</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>Key insight:</strong> Bigger isn't always better. Google's Gemini can hold 1M tokens, but research shows accuracy drops significantly for information in the middle of very long contexts (the "lost in the middle" problem). Claude's 200K window with good context engineering often outperforms a 1M window stuffed with everything.
+  </div>
+</div>
+
+<div class="section">
+  <h2>Why Claude "Forgets" — Three Different Things People Call Forgetting</h2>
+
+  <h3>1. Session Boundary (the hard reset)</h3>
+  <p>When a session ends and a new one starts, the context window is completely cleared. Claude doesn't carry anything over. This is why CLAUDE.md exists — it's the only thing that automatically reloads. Everything else (supplements, conversation, decisions made) must be explicitly preserved through files (HANDOFF.md, KB, session-memory.md).</p>
+
+  <h3>2. Compaction (the emergency summary)</h3>
+  <p>When the context window fills up during a session, the system automatically summarizes older conversation to free space. This is lossy — details, nuance, and specific instructions from early in the session may be simplified or lost. This is what happened earlier today when our session compacted and you got that "continued from previous conversation" summary.</p>
+
+  <h3>3. Attention Fade (the gradual drift)</h3>
+  <p>Even within a session where nothing is lost, Claude's "attention" to instructions degrades as the conversation grows. CLAUDE.md instructions that were perfectly followed at message 3 may be inconsistently followed at message 30 — not because they're gone, but because they're now competing with 50,000+ tokens of newer content for attention weight. This is the "laziness" you've been experiencing, compounded by the Opus 4.6 regression.</p>
+
+  <div class="warning">
+    <strong>This is why you write everything down.</strong> Decision logs, session summaries, knowledge base entries — none of this is bureaucracy. It's survival. If it's not written somewhere Claude can find it next session, it functionally doesn't exist.
+  </div>
+</div>
+
+<div class="section">
+  <h2>What This Means for Your Setup</h2>
+
+  <div class="callout">
+    <strong>Good Claude architecture is context window management in disguise:</strong>
+  </div>
+
+  <table>
+    <tr><th>Architecture Decision</th><th>Why It Works (Context Window Reason)</th></tr>
+    <tr><td>Modular CLAUDE.md with @-imports</td><td>Keeps boot context organized without wasting tokens on section headers and navigation</td></tr>
+    <tr><td>Separate sessions for different roles</td><td>Each session gets its own fresh 200K window instead of one session trying to hold everything</td></tr>
+    <tr><td>Knowledge base with on-demand retrieval</td><td>Hundreds of docs NOT loaded at boot — only retrieved when needed. Massive savings vs. stuffing everything into CLAUDE.md</td></tr>
+    <tr><td>Supplements separate from CLAUDE.md</td><td>Company-level context always loaded (cheap). Product-level loaded per session (only when needed)</td></tr>
+    <tr><td>Periodic checkpoint rule</td><td>Forces doc updates before the window gets too full to act on them reliably</td></tr>
+    <tr><td>Session close-out protocol</td><td>Writes critical state to files BEFORE compaction can erase it from the window</td></tr>
+    <tr><td>"Write it down or it doesn't exist"</td><td>Anything only in the context window dies at session end. Files are permanent.</td></tr>
+  </table>
+</div>
+
+<div class="next-session">
+  <h3>Next: Phase 1, Session 2</h3>
+  <p style="margin-top:10px; color:#ccc">What Claude Sees at Session Start — the exact loading order, visualized step by step.</p>
+  <p style="margin-top:5px; color:#999; font-size:13px">We'll walk through what happens from the moment you open a session to when Claude is ready to work — visualized step by step.</p>
+</div>
+
+<script>
+function toggleLayer(el) {
+  const layers = document.querySelectorAll('.window-layer');
+  const wasActive = el.classList.contains('active');
+  layers.forEach(l => l.classList.remove('active'));
+  if (!wasActive) el.classList.add('active');
+}
+
+const scenarios = {
+  fresh: {
+    segments: [
+      { pct: 2, color: '#2d5a2d', label: 'System' },
+      { pct: 2.75, color: '#2d2d5a', label: 'CLAUDE.md' },
+      { pct: 1.25, color: '#5a2d5a', label: 'Supplements' },
+      { pct: 1, color: '#2d5a5a', label: 'Conv' },
+      { pct: 0.5, color: '#5a3d1a', label: 'Msg' },
+      { pct: 92.5, color: '#3d2d5a', label: 'Thinking Space' },
+    ],
+    desc: '<strong>Fresh Session:</strong> Most of the window is empty — available for conversation and thinking. This is when Claude is at its best. CLAUDE.md and rules are loaded, supplements read during startup protocol. Claude has maximum room to think and follow instructions precisely.'
+  },
+  mid: {
+    segments: [
+      { pct: 2, color: '#2d5a2d', label: 'System' },
+      { pct: 2.75, color: '#2d2d5a', label: 'CLAUDE.md' },
+      { pct: 1.25, color: '#5a2d5a', label: 'Suppl' },
+      { pct: 30, color: '#2d5a5a', label: 'Conversation History' },
+      { pct: 0.5, color: '#5a3d1a', label: 'Msg' },
+      { pct: 63.5, color: '#3d2d5a', label: 'Thinking Space' },
+    ],
+    desc: '<strong>Mid-Session (1 hour in):</strong> Conversation history has grown to ~60K tokens from your messages, Claude\'s responses, and tool call results. Still plenty of room. This is the productive sweet spot — enough context to understand the work, enough room to think.'
+  },
+  late: {
+    segments: [
+      { pct: 2, color: '#2d5a2d', label: 'System' },
+      { pct: 2.75, color: '#2d2d5a', label: 'CLAUDE.md' },
+      { pct: 1.25, color: '#5a2d5a', label: '' },
+      { pct: 78, color: '#2d5a5a', label: 'Conversation History (tool calls, file reads, responses...)' },
+      { pct: 0.5, color: '#5a3d1a', label: '' },
+      { pct: 15.5, color: '#3d2d5a', label: 'Thinking' },
+    ],
+    desc: '<strong>Late Session (3 hours in):</strong> The window is 85% full. Conversation history dominates. CLAUDE.md is still there but Claude\'s attention to it is diluted by the sheer volume of recent content. This is when you notice rule-breaking, "laziness," and lower quality output. Compaction is approaching.'
+  },
+  compacted: {
+    segments: [
+      { pct: 2, color: '#2d5a2d', label: 'System' },
+      { pct: 2.75, color: '#2d2d5a', label: 'CLAUDE.md' },
+      { pct: 1.25, color: '#5a2d5a', label: 'Suppl' },
+      { pct: 12, color: '#2d5a5a', label: 'Summary of prev. conversation' },
+      { pct: 0.5, color: '#5a3d1a', label: 'Msg' },
+      { pct: 81.5, color: '#3d2d5a', label: 'Thinking Space (recovered)' },
+    ],
+    desc: '<strong>After Compaction:</strong> The system summarized hours of conversation into a compact summary. Space is recovered, but detail is lost. Specific instructions, nuanced decisions, and context from earlier in the session may be simplified or missing entirely. Claude is working from a book report of what happened, not the original book. This is why the self-update rule exists — write critical state to files BEFORE this happens.'
+  }
+};
+
+function setScenario(key) {
+  document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  const s = scenarios[key];
+  const fill = document.getElementById('meterFill');
+  fill.innerHTML = '';
+
+  s.segments.forEach(seg => {
+    const div = document.createElement('div');
+    div.className = 'meter-segment';
+    div.style.width = seg.pct + '%';
+    div.style.background = seg.color;
+    div.textContent = seg.label;
+    fill.appendChild(div);
+  });
+
+  document.getElementById('scenarioDescription').innerHTML = s.desc;
+}
+
+// Initialize
+setScenario('fresh');
+</script>
+
+</body>
+</html>
