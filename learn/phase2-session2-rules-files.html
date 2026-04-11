@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 2, Session 2: Rules Files</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #1a1a1a; color: #e0e0e0;
+    line-height: 1.6; padding: 20px; max-width: 900px; margin: 0 auto;
+  }
+  h1 { color: #C8956C; font-size: 28px; margin-bottom: 5px; }
+  h2 { color: #C8956C; font-size: 22px; margin: 30px 0 15px; }
+  h3 { color: #fff; font-size: 16px; margin: 16px 0 8px; }
+  .subtitle { color: #999; font-size: 14px; margin-bottom: 30px; }
+  .section { background: #242424; border-radius: 12px; padding: 24px; margin: 20px 0; }
+  .callout { background: #2a2318; border-left: 4px solid #C8956C; padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+  .callout strong { color: #C8956C; }
+  .warning { background: #2a1f1f; border-left: 4px solid #e74c3c; padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: #e74c3c; }
+  .insight { background: #1a2a20; border-left: 4px solid #4a9; padding: 16px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+  .insight strong { color: #4a9; }
+  .analogy { background: #1a2020; border: 1px solid #2a4040; padding: 20px; border-radius: 10px; margin: 15px 0; }
+  .analogy-label { color: #5ba; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  code { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #C8956C; }
+  table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+  th { text-align: left; padding: 10px 12px; background: #2a2a2a; color: #C8956C; font-size: 14px; }
+  td { padding: 10px 12px; border-bottom: 1px solid #333; font-size: 14px; }
+  tr:hover td { background: #2a2a2a; }
+  p { margin: 10px 0; }
+
+  /* Phase badge */
+  .phase-badge {
+    display: inline-block; background: #2a2318; border: 1px solid #C8956C;
+    color: #C8956C; font-size: 12px; padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 15px; font-weight: bold; letter-spacing: 0.5px;
+  }
+
+  /* Specificity Ladder */
+  .ladder { margin: 20px 0; }
+  .rung {
+    display: flex; align-items: stretch; gap: 0; margin: 3px 0;
+    border-radius: 8px; overflow: hidden; cursor: pointer;
+    transition: filter 0.2s;
+  }
+  .rung:hover { filter: brightness(1.15); }
+  .rung-level {
+    width: 130px; flex-shrink: 0; display: flex; align-items: center;
+    justify-content: center; font-size: 12px; font-weight: bold;
+    text-transform: uppercase; letter-spacing: 1px; padding: 14px 10px;
+    text-align: center;
+  }
+  .rung-example {
+    flex: 1; padding: 14px 16px; font-family: 'Courier New', monospace;
+    font-size: 13px; line-height: 1.5; display: flex; align-items: center;
+  }
+  .rung-score {
+    width: 55px; flex-shrink: 0; display: flex; align-items: center;
+    justify-content: center; font-size: 18px; font-weight: bold;
+    font-family: monospace;
+  }
+
+  .rung-aspiration .rung-level { background: #2a2020; color: #e74; }
+  .rung-aspiration .rung-example { background: #221a1a; color: #888; }
+  .rung-aspiration .rung-score { background: #2a2020; color: #e74; }
+
+  .rung-guideline .rung-level { background: #2a2518; color: #f90; }
+  .rung-guideline .rung-example { background: #221e14; color: #bbb; }
+  .rung-guideline .rung-score { background: #2a2518; color: #f90; }
+
+  .rung-rule .rung-level { background: #1a2818; color: #4a9; }
+  .rung-rule .rung-example { background: #162014; color: #ddd; }
+  .rung-rule .rung-score { background: #1a2818; color: #4a9; }
+
+  .rung-constraint .rung-level { background: #182428; color: #7af; }
+  .rung-constraint .rung-example { background: #141c20; color: #eee; font-weight: bold; }
+  .rung-constraint .rung-score { background: #182428; color: #7af; }
+
+  .rung-explain {
+    background: #1a1a1a; border: 1px solid #333; border-radius: 8px;
+    padding: 14px 18px; margin-top: 10px; font-size: 14px; color: #bbb;
+    display: none; line-height: 1.7;
+  }
+  .rung-explain.show { display: block; }
+  .rung-explain strong { color: #C8956C; }
+  .ladder-hint { color: #555; font-size: 13px; font-style: italic; text-align: center; margin-top: 8px; }
+
+  /* Trigger-Action Builder */
+  .ta-container { margin: 20px 0; }
+  .ta-editor {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0;
+  }
+  @media (max-width:600px) { .ta-editor { grid-template-columns: 1fr; } }
+  .ta-panel { background: #1a1a1a; border-radius: 10px; padding: 16px; border: 1px solid #333; }
+  .ta-panel-label { font-size: 11px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+  .ta-label-trigger { color: #7af; }
+  .ta-label-action  { color: #4a9; }
+  .ta-input {
+    width: 100%; background: #242424; border: 1px solid #444;
+    border-radius: 6px; padding: 10px 12px; color: #e0e0e0;
+    font-size: 14px; font-family: inherit; outline: none;
+    resize: none; min-height: 60px; line-height: 1.5;
+  }
+  .ta-input:focus { border-color: #C8956C; }
+  .ta-output {
+    background: #1a2a1a; border: 1px solid #3a5a3a; border-radius: 10px;
+    padding: 16px; margin-top: 12px; font-family: 'Courier New', monospace;
+    font-size: 14px; color: #ddd; line-height: 1.8; min-height: 50px;
+  }
+  .ta-output .trigger-part { color: #7af; }
+  .ta-output .action-part  { color: #4a9; }
+  .ta-output .placeholder  { color: #555; font-style: italic; font-family: sans-serif; }
+  .ta-build-btn {
+    background: #C8956C; color: #1a1a1a; border: none;
+    padding: 10px 24px; border-radius: 8px; cursor: pointer;
+    font-size: 14px; font-weight: bold; margin-top: 10px; transition: all 0.2s;
+  }
+  .ta-build-btn:hover { background: #d4a57c; }
+
+  /* Attention heat map for a long rules file */
+  .heatmap-container { margin: 20px 0; position: relative; }
+  .heatmap-file {
+    background: #1a1a1a; border-radius: 10px; padding: 20px;
+    display: flex; gap: 16px;
+  }
+  .heatmap-lines { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+  .heatmap-line {
+    display: flex; align-items: center; gap: 10px; padding: 5px 8px;
+    border-radius: 5px; transition: all 0.3s;
+  }
+  .heat-bar { height: 6px; border-radius: 3px; flex-shrink: 0; }
+  .line-text { font-family: 'Courier New', monospace; font-size: 12px; flex: 1; }
+  .heat-val { width: 32px; font-size: 11px; font-family: monospace; text-align: right; color: #555; }
+
+  .heat-critical { background: rgba(122,175,255,0.12); }
+  .heat-high     { background: rgba(74,153,74,0.1); }
+  .heat-mid      { background: rgba(200,149,108,0.08); }
+  .heat-low      { background: rgba(100,100,100,0.05); }
+  .heat-dead     { background: transparent; }
+
+  .heatmap-axis {
+    width: 18px; flex-shrink: 0; display: flex; flex-direction: column;
+    justify-content: space-between; align-items: center;
+    font-size: 10px; color: #555; padding: 5px 0;
+  }
+
+  .heat-legend { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+  .heat-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #777; }
+  .heat-legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* Modular vs Monolith */
+  .mono-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+  @media (max-width:620px) { .mono-grid { grid-template-columns: 1fr; } }
+  .mono-panel { border-radius: 10px; padding: 18px; border-top: 4px solid; }
+  .mono-bad  { background: #201a1a; border-color: #e74; }
+  .mono-good { background: #182018; border-color: #4a9; }
+  .mono-panel h4 { font-size: 14px; margin-bottom: 12px; }
+  .mono-bad  h4 { color: #e74; }
+  .mono-good h4 { color: #4a9; }
+  .mono-file {
+    background: #2a2a2a; border-radius: 6px; padding: 10px 12px;
+    margin: 6px 0; font-family: monospace; font-size: 12px; color: #bbb;
+    border-left: 3px solid #444;
+  }
+  .mono-file.mixed { border-left-color: #f90; color: #aaa; }
+  .mono-file.focused-hard   { border-left-color: #7af; }
+  .mono-file.focused-proto  { border-left-color: #C8956C; }
+  .mono-file.focused-mkt    { border-left-color: #d7a; }
+  .mono-file.focused-ops    { border-left-color: #4a9; }
+  .mono-file .file-name { color: #ddd; font-weight: bold; }
+  .mono-file .file-size { float: right; font-size: 11px; color: #666; }
+  .mono-file .file-desc { font-family: sans-serif; font-size: 11px; color: #666; margin-top: 3px; }
+  .mono-token { font-size: 12px; color: #666; margin: 10px 0 6px; }
+
+  /* Rule Categories */
+  .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+  @media (max-width:600px) { .cat-grid { grid-template-columns: 1fr; } }
+  .cat-card { background: #2a2a2a; border-radius: 10px; padding: 16px; border-top: 3px solid; }
+  .cat-card h4 { font-size: 13px; margin-bottom: 8px; }
+  .cat-example { background: #1a1a1a; border-radius: 6px; padding: 9px 12px; margin: 6px 0; font-family: monospace; font-size: 12px; color: #bbb; line-height: 1.5; }
+  .cat-note { font-size: 12px; color: #666; margin-top: 8px; font-style: italic; }
+
+  /* Rules vs Guidelines quiz */
+  .quiz-item {
+    background: #242424; border-radius: 10px; padding: 16px; margin: 10px 0;
+    display: flex; align-items: flex-start; gap: 16px;
+  }
+  .quiz-text { flex: 1; font-family: monospace; font-size: 13px; line-height: 1.6; color: #ddd; }
+  .quiz-btns { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .quiz-btn {
+    padding: 6px 14px; border-radius: 6px; border: 1px solid #444;
+    background: #2a2a2a; color: #bbb; cursor: pointer; font-size: 12px;
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .quiz-btn:hover { border-color: #C8956C; color: #C8956C; }
+  .quiz-btn.correct   { background: #182818; border-color: #4a9; color: #4a9; }
+  .quiz-btn.incorrect { background: #281818; border-color: #e74; color: #e74; }
+  .quiz-feedback { font-size: 12px; margin-top: 8px; padding: 6px 10px; border-radius: 6px; display: none; }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.good { background: #182818; color: #4a9; }
+  .quiz-feedback.bad  { background: #281818; color: #e74; }
+
+  /* Next session */
+  .next-session {
+    background: #242424; border-radius: 12px; padding: 24px;
+    margin: 30px 0 0; border-top: 3px solid #C8956C;
+  }
+  .next-session h3 { color: #C8956C; margin-bottom: 10px; }
+  .phase-session { font-size: 12px; color: #666; margin-bottom: 4px; }
+  .prev-next { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .nav-btn {
+    background: #2a2a2a; border: 1px solid #444; color: #bbb;
+    padding: 10px 20px; border-radius: 8px; cursor: pointer;
+    font-size: 13px; text-decoration: none; display: inline-block;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { background: #333; border-color: #C8956C; color: #C8956C; }
+  .nav-btn.primary { background: #C8956C; color: #1a1a1a; border-color: #C8956C; font-weight: bold; }
+  .nav-btn.primary:hover { background: #d4a57c; }
+</style>
+</head>
+<body>
+
+<div class="phase-badge">PHASE 2 — THE CONFIGURATION LAYER</div>
+<h1>Phase 2, Session 2</h1>
+<h2 style="margin-top:4px; font-size:24px;">Rules Files</h2>
+<p class="subtitle">How @-imports work, why modular beats monolithic, and how to write rules that actually change Claude's behavior — vs. ones that quietly get ignored.</p>
+
+<!-- Section 1: The Core Problem -->
+<div class="section">
+  <h2>The Core Problem with Rules</h2>
+  <p>You can write a rule that looks completely reasonable, spend three minutes crafting it, save it to your configuration — and have it accomplish essentially nothing. Not because Claude is ignoring it. Because <strong>you didn't write a rule. You wrote a hope.</strong></p>
+  <p>There's a meaningful difference between:</p>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:16px 0;">
+    <div style="background:#221a1a; border-left:3px solid #e74; border-radius:0 8px 8px 0; padding:14px; font-family:monospace; font-size:13px; color:#bbb;">"Be careful with production. Production is sacred and we never want to break it."</div>
+    <div style="background:#162014; border-left:3px solid #4a9; border-radius:0 8px 8px 0; padding:14px; font-family:monospace; font-size:13px; color:#ddd;">"Never run destructive database commands (DROP, TRUNCATE, DELETE without WHERE) without showing the exact command and getting explicit 'confirmed' back from the user."</div>
+  </div>
+
+  <p>The first example uses three sentences to say nothing Claude can act on. The second uses one sentence and gives Claude a specific trigger, a specific behavior, and a specific condition for proceeding. That's the gap this session closes.</p>
+
+  <div class="analogy">
+    <div class="analogy-label">Analogy</div>
+    <strong style="color:#5ba;">A fire drill works because it specifies exactly what to do when the alarm goes off — not because it reminds people that fire is dangerous.</strong>
+    <p style="margin-top:8px; font-size:14px; color:#bbb;">Your rules files are operational procedures, not philosophical statements. "Be careful" and "prioritize safety" are fire-awareness campaigns. Trigger-action rules are fire drills. Only one of them changes behavior when the moment arrives.</p>
+  </div>
+</div>
+
+<!-- Section 2: The Specificity Ladder -->
+<div class="section">
+  <h2>The Specificity Ladder</h2>
+  <p>Every instruction you write sits somewhere on this ladder. Click each rung to understand what distinguishes it from the one below — and why Claude behaves differently at each level.</p>
+
+  <div class="ladder">
+    <div style="text-align:right; font-size:12px; color:#555; margin-bottom:8px; padding-right:55px;">Compliance likelihood →</div>
+    <div class="rung rung-constraint" onclick="showRung('constraint')">
+      <div class="rung-level">Hard Constraint</div>
+      <div class="rung-example">"NEVER deploy to PROD without explicit 'deploy approved' from [name]. This applies even if instructed to."</div>
+      <div class="rung-score" style="color:#7af;">97%</div>
+    </div>
+    <div class="rung rung-rule" onclick="showRung('rule')">
+      <div class="rung-level">Trigger-Action Rule</div>
+      <div class="rung-example">"When a client email contains 'cancel' or 'refund', reply within 2 hours and flag in #support-urgent."</div>
+      <div class="rung-score" style="color:#4a9;">85%</div>
+    </div>
+    <div class="rung rung-guideline" onclick="showRung('guideline')">
+      <div class="rung-level">Soft Guideline</div>
+      <div class="rung-example">"Try to keep responses concise and avoid over-explaining unless the user asks for detail."</div>
+      <div class="rung-score" style="color:#f90;">55%</div>
+    </div>
+    <div class="rung rung-aspiration" onclick="showRung('aspiration')">
+      <div class="rung-level">Aspiration</div>
+      <div class="rung-example">"Always be helpful, professional, and represent our brand well in all interactions."</div>
+      <div class="rung-score" style="color:#e74;">~0%</div>
+    </div>
+  </div>
+  <p class="ladder-hint">↑ Click any rung for details</p>
+
+  <div class="rung-explain" id="rung-explain"></div>
+
+  <div class="callout">
+    <strong>The ~0% isn't a bug:</strong> Aspirations score near zero not because Claude ignores them, but because they describe Claude's default behavior. "Be helpful and professional" is what Claude does without any instruction. Writing it as a rule doesn't change anything — it just consumes tokens.
+  </div>
+</div>
+
+<!-- Section 3: The Trigger-Action Pattern -->
+<div class="section">
+  <h2>The Trigger-Action Pattern</h2>
+  <p>The most reliable rule structure is also the simplest: <strong>When [specific condition], do [specific action].</strong> No ambiguity. No judgment calls. No words Claude has to interpret.</p>
+
+  <p>Build one below. Type a trigger condition and an action, and see how the pattern assembles.</p>
+
+  <div class="ta-container">
+    <div class="ta-editor">
+      <div class="ta-panel">
+        <div class="ta-panel-label ta-label-trigger">Trigger — When this happens...</div>
+        <textarea class="ta-input" id="ta-trigger" placeholder="e.g., a user mentions canceling their account" oninput="buildRule()"></textarea>
+      </div>
+      <div class="ta-panel">
+        <div class="ta-panel-label ta-label-action">Action — Do exactly this</div>
+        <textarea class="ta-input" id="ta-action" placeholder="e.g., flag it as churn-risk in Slack #retention and reply within 1 hour" oninput="buildRule()"></textarea>
+      </div>
+    </div>
+
+    <div class="ta-output" id="ta-output">
+      <span class="placeholder">Your rule will appear here as you type...</span>
+    </div>
+
+    <div style="margin-top:14px; font-size:13px; color:#888;">
+      <strong style="color:#C8956C;">Examples of strong triggers:</strong> a file is about to be deleted permanently · a message contains the word "urgent" · the user asks about pricing · a deploy command is run on PROD · an email arrives from @client-domain.com
+    </div>
+  </div>
+
+  <h3>What makes a trigger strong?</h3>
+  <table>
+    <thead><tr><th>Weak trigger</th><th>Strong trigger</th><th>Why it matters</th></tr></thead>
+    <tbody>
+      <tr><td>"When something seems urgent"</td><td>"When an email subject contains 'urgent', 'down', or 'breach'"</td><td>Strong trigger has zero ambiguity. Claude doesn't guess what "seems" means.</td></tr>
+      <tr><td>"Before doing anything risky"</td><td>"Before any terminal command that modifies files outside /tmp"</td><td>Strong trigger defines the category explicitly. No judgment calls.</td></tr>
+      <tr><td>"If the client is unhappy"</td><td>"If a client email contains 'disappointed', 'frustrated', or 'cancel'"</td><td>Strong trigger is pattern-matchable. Weak trigger requires emotional inference.</td></tr>
+      <tr><td>"When appropriate"</td><td>"At the end of any response involving code or commands"</td><td>"When appropriate" transfers all judgment to Claude. Strong trigger removes it.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Section 4: Attention Heat Map -->
+<div class="section">
+  <h2>Where Rules Go to Die</h2>
+  <p>You learned in Phase 1, Session 5 that Claude's attention isn't uniform — it's highest at the start and end of a document, lowest in the middle. A rules file isn't exempt from this. The position of a rule within the file affects how reliably it's followed.</p>
+  <p>The visualization below shows a typical long rules file. Notice where the critical rules ended up.</p>
+
+  <div class="heatmap-container">
+    <div class="heatmap-file">
+      <div class="heatmap-axis">
+        <span>TOP</span>
+        <span style="writing-mode:vertical-rl; transform:rotate(180deg); font-size:9px; color:#444;">attention weight</span>
+        <span>BOT</span>
+      </div>
+      <div class="heatmap-lines">
+        <div class="heatmap-line heat-critical">
+          <div class="heat-bar" style="width:72px; background:#7af;"></div>
+          <div class="line-text"># Hard Rules — DO NOT BREAK</div>
+          <div class="heat-val" style="color:#7af;">95%</div>
+        </div>
+        <div class="heatmap-line heat-critical">
+          <div class="heat-bar" style="width:68px; background:#7af;"></div>
+          <div class="line-text">NEVER deploy to production without approval</div>
+          <div class="heat-val" style="color:#7af;">91%</div>
+        </div>
+        <div class="heatmap-line heat-critical">
+          <div class="heat-bar" style="width:64px; background:#7af;"></div>
+          <div class="line-text">NEVER modify files outside /src directory</div>
+          <div class="heat-val" style="color:#7af;">87%</div>
+        </div>
+        <div class="heatmap-line heat-high">
+          <div class="heat-bar" style="width:55px; background:#4a9;"></div>
+          <div class="line-text">## Communication Style</div>
+          <div class="heat-val" style="color:#4a9;">74%</div>
+        </div>
+        <div class="heatmap-line heat-high">
+          <div class="heat-bar" style="width:50px; background:#4a9;"></div>
+          <div class="line-text">Reply in same language as user's message</div>
+          <div class="heat-val" style="color:#4a9;">68%</div>
+        </div>
+        <div class="heatmap-line heat-mid">
+          <div class="heat-bar" style="width:38px; background:#C8956C;"></div>
+          <div class="line-text">## Formatting Guidelines</div>
+          <div class="heat-val" style="color:#C8956C;">52%</div>
+        </div>
+        <div class="heatmap-line heat-mid">
+          <div class="heat-bar" style="width:33px; background:#C8956C;"></div>
+          <div class="line-text">Use markdown only when rendering is confirmed</div>
+          <div class="heat-val" style="color:#C8956C;">45%</div>
+        </div>
+        <div class="heatmap-line heat-low">
+          <div class="heat-bar" style="width:22px; background:#888;"></div>
+          <div class="line-text">## Data Handling</div>
+          <div class="heat-val">30%</div>
+        </div>
+        <div class="heatmap-line heat-low">
+          <div class="heat-bar" style="width:18px; background:#888;"></div>
+          <div class="line-text">Never log PII to console or external services</div>
+          <div class="heat-val">24%</div>
+        </div>
+        <div class="heatmap-line heat-dead">
+          <div class="heat-bar" style="width:12px; background:#555;"></div>
+          <div class="line-text">## Escalation Policy</div>
+          <div class="heat-val">15%</div>
+        </div>
+        <div class="heatmap-line heat-dead" style="border-left: 2px solid #e74; padding-left:6px;">
+          <div class="heat-bar" style="width:9px; background:#e74;"></div>
+          <div class="line-text" style="color:#e74;">CRITICAL: Never share customer data with third parties</div>
+          <div class="heat-val" style="color:#e74;">11%</div>
+        </div>
+        <div class="heatmap-line heat-dead">
+          <div class="heat-bar" style="width:7px; background:#555;"></div>
+          <div class="line-text">Contact legal before any compliance questions</div>
+          <div class="heat-val">9%</div>
+        </div>
+      </div>
+    </div>
+    <div class="heat-legend">
+      <div class="heat-legend-item"><div class="heat-legend-dot" style="background:#7af;"></div>Critical attention (top)</div>
+      <div class="heat-legend-item"><div class="heat-legend-dot" style="background:#4a9;"></div>High attention</div>
+      <div class="heat-legend-item"><div class="heat-legend-dot" style="background:#C8956C;"></div>Medium attention</div>
+      <div class="heat-legend-item"><div class="heat-legend-dot" style="background:#666;"></div>Low attention</div>
+      <div class="heat-legend-item"><div class="heat-legend-dot" style="background:#e74;"></div>Buried critical rule</div>
+    </div>
+  </div>
+
+  <div class="warning">
+    <strong>The buried critical rule problem:</strong> "CRITICAL: Never share customer data with third parties" is marked critical in the text — but it's at position 11 of 13 in a long file, receiving only ~11% attention weight. The word "CRITICAL" in all-caps isn't enough. Position beats emphasis. If it's truly critical, it needs to be in the first 20% of the file, not the last.
+  </div>
+
+  <div class="insight">
+    <strong>The fix:</strong> Hard constraints go at the top of your rules file, always. Format them in a dedicated "Hard Rules" section. Everything softer — communication style, formatting preferences, escalation protocols — can follow. If you have a rule so important you'd put "CRITICAL" in front of it, it belongs at line 3, not line 33.
+  </div>
+</div>
+
+<!-- Section 5: Rule Categories -->
+<div class="section">
+  <h2>The Four Rule Categories</h2>
+  <p>Not all rules are the same type. Understanding the category helps you know where it goes in the file, how to word it, and whether it even belongs in a rules file at all.</p>
+
+  <div class="cat-grid">
+    <div class="cat-card" style="border-color:#e74;">
+      <h4 style="color:#e74;">🔴 Hard Constraints</h4>
+      <div class="cat-example">NEVER deploy without explicit approval<br>NEVER modify files outside /src<br>DO NOT send emails to clients directly</div>
+      <div class="cat-note">Non-negotiable. Use absolute language: NEVER, ALWAYS, DO NOT. Goes at the top. Should be short, clear, and unconditional.</div>
+    </div>
+    <div class="cat-card" style="border-color:#7af;">
+      <h4 style="color:#7af;">🔵 Trigger-Action Rules</h4>
+      <div class="cat-example">When X happens → do Y exactly<br>Before doing Z → verify condition A<br>If message contains "cancel" → flag in Slack</div>
+      <div class="cat-note">Behavioral rules that fire on specific conditions. The workhorse of good rules files. Should always follow the trigger-action pattern.</div>
+    </div>
+    <div class="cat-card" style="border-color:#C8956C;">
+      <h4 style="color:#C8956C;">🟠 Defaults and Preferences</h4>
+      <div class="cat-example">Use US English unless user writes otherwise<br>Default to short responses; expand on request<br>Prefer async communication over live calls</div>
+      <div class="cat-note">Standing defaults that apply in the absence of other signals. These are softer — they set the baseline but can be overridden by context.</div>
+    </div>
+    <div class="cat-card" style="border-color:#4a9;">
+      <h4 style="color:#4a9;">🟢 Protocols</h4>
+      <div class="cat-example">Session startup: run X, then Y, then Z<br>Deploy checklist: verify → stage → approve → push<br>Client onboarding: send welcome, then schedule</div>
+      <div class="cat-note">Multi-step procedures that Claude follows as a sequence. These are often better as their own dedicated files (e.g., session-protocol.md) than inline rules.</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>One file per category?</strong> Not necessarily — but related rules group better together. Hard constraints and trigger-action rules often live in <code>hard-rules.md</code>. Startup/shutdown protocols belong in <code>session-protocol.md</code>. Domain-specific rules (marketing, deployment, client handling) each get their own file. The principle: a developer should be able to read the filename and know exactly what's inside.
+  </div>
+</div>
+
+<!-- Section 6: Modular vs Monolith -->
+<div class="section">
+  <h2>Modular vs. Monolithic</h2>
+  <p>The most common rules file design mistake is building one giant file that mixes hard constraints, formatting preferences, protocols, and domain-specific rules all together. Here's what that looks like — and the better alternative.</p>
+
+  <div class="mono-grid">
+    <div class="mono-panel mono-bad">
+      <h4>❌ Monolithic rules.md</h4>
+      <div class="mono-token">~3,400 tokens · loads for every session</div>
+      <div class="mono-file mixed">
+        <div class="file-name">rules.md <span class="file-size">~3,400 tok</span></div>
+        <div class="file-desc">Hard constraints mixed with formatting prefs mixed with deployment steps mixed with marketing rules mixed with client handling</div>
+      </div>
+
+      <div style="margin-top:14px; font-size:13px; color:#888; line-height:1.7;">
+        Problems:<br>
+        · Marketing rules load even during deployment work<br>
+        · Hard constraints buried under formatting noise<br>
+        · Editing one section risks breaking another<br>
+        · No easy way to share only one section with a new session<br>
+        · Attention diluted across unrelated topics<br>
+        · Growing indefinitely with no natural pruning point
+      </div>
+    </div>
+
+    <div class="mono-panel mono-good">
+      <h4>✅ Modular rules files</h4>
+      <div class="mono-token">~3,400 tokens total · each session loads only what's relevant</div>
+      <div class="mono-file focused-hard">
+        <div class="file-name">hard-rules.md <span class="file-size">~600 tok</span></div>
+        <div class="file-desc">Non-negotiable constraints only. Every session loads this.</div>
+      </div>
+      <div class="mono-file focused-proto">
+        <div class="file-name">session-protocol.md <span class="file-size">~800 tok</span></div>
+        <div class="file-desc">Startup/shutdown procedure. Every session loads this.</div>
+      </div>
+      <div class="mono-file focused-mkt">
+        <div class="file-name">marketing-rules.md <span class="file-size">~900 tok</span></div>
+        <div class="file-desc">Posting times, content gates, platform rules. Marketing session only.</div>
+      </div>
+      <div class="mono-file focused-ops">
+        <div class="file-name">deployment-rules.md <span class="file-size">~500 tok</span></div>
+        <div class="file-desc">Deploy checklist, PROD gates. Ops session only.</div>
+      </div>
+
+      <div style="margin-top:14px; font-size:13px; color:#888; line-height:1.7;">
+        Benefits:<br>
+        · Each session loads only its relevant rules<br>
+        · Hard constraints always at the top of their file<br>
+        · Each file can be updated independently<br>
+        · Easy to share a file with a new session or client<br>
+        · Attention focused on relevant rules only<br>
+        · Natural scope boundaries prevent bloat
+      </div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>The loading decision:</strong> In CLAUDE.md, you @-import the files that apply to every session. Domain-specific files (marketing, deployment) get imported only in the CLAUDE.md for that session type. A marketing session has no reason to load deployment rules — and loading them burns tokens and attention on irrelevant content.
+  </div>
+</div>
+
+<!-- Section 7: Rules vs Guidelines Quiz -->
+<div class="section">
+  <h2>Rule or Guideline? You Decide.</h2>
+  <p>Before writing a rule, it helps to know what you're actually writing. Each item below is either a solid rule (specific, trigger-driven, unambiguous) or a guideline (soft preference that relies on Claude's judgment). Try to classify them — then see why.</p>
+
+  <div id="quiz-items">
+
+    <div class="quiz-item" id="q1">
+      <div class="quiz-text">"Before running any git push, verify the current branch is not main."</div>
+      <div class="quiz-btns">
+        <button class="quiz-btn" onclick="checkQuiz('q1','rule',true)">Rule</button>
+        <button class="quiz-btn" onclick="checkQuiz('q1','guideline',false)">Guideline</button>
+      </div>
+    </div>
+    <div class="quiz-feedback" id="q1-fb"></div>
+
+    <div class="quiz-item" id="q2">
+      <div class="quiz-text">"Try to keep your tone professional but approachable in client communications."</div>
+      <div class="quiz-btns">
+        <button class="quiz-btn" onclick="checkQuiz('q2','rule',false)">Rule</button>
+        <button class="quiz-btn" onclick="checkQuiz('q2','guideline',true)">Guideline</button>
+      </div>
+    </div>
+    <div class="quiz-feedback" id="q2-fb"></div>
+
+    <div class="quiz-item" id="q3">
+      <div class="quiz-text">"Never commit secrets, API keys, or .env files to git, even if explicitly asked."</div>
+      <div class="quiz-btns">
+        <button class="quiz-btn" onclick="checkQuiz('q3','rule',true)">Rule</button>
+        <button class="quiz-btn" onclick="checkQuiz('q3','guideline',false)">Guideline</button>
+      </div>
+    </div>
+    <div class="quiz-feedback" id="q3-fb"></div>
+
+    <div class="quiz-item" id="q4">
+      <div class="quiz-text">"Be careful with sensitive data and handle it responsibly."</div>
+      <div class="quiz-btns">
+        <button class="quiz-btn" onclick="checkQuiz('q4','rule',false)">Rule</button>
+        <button class="quiz-btn" onclick="checkQuiz('q4','guideline',true)">Guideline</button>
+      </div>
+    </div>
+    <div class="quiz-feedback" id="q4-fb"></div>
+
+    <div class="quiz-item" id="q5">
+      <div class="quiz-text">"When a task will take more than 5 tool calls to complete, pause and confirm direction with the user before proceeding."</div>
+      <div class="quiz-btns">
+        <button class="quiz-btn" onclick="checkQuiz('q5','rule',true)">Rule</button>
+        <button class="quiz-btn" onclick="checkQuiz('q5','guideline',false)">Guideline</button>
+      </div>
+    </div>
+    <div class="quiz-feedback" id="q5-fb"></div>
+
+    <div class="quiz-item" id="q6">
+      <div class="quiz-text">"Prioritize important work over less urgent tasks."</div>
+      <div class="quiz-btns">
+        <button class="quiz-btn" onclick="checkQuiz('q6','rule',false)">Rule</button>
+        <button class="quiz-btn" onclick="checkQuiz('q6','guideline',true)">Guideline</button>
+      </div>
+    </div>
+    <div class="quiz-feedback" id="q6-fb"></div>
+
+  </div>
+
+  <div class="warning" style="margin-top:20px;">
+    <strong>The guideline trap:</strong> Guidelines aren't useless — they're just less reliable. "Keep tone professional" won't cause disasters. But if you treat a guideline as a guarantee, you'll be surprised when Claude exercises judgment in a direction you didn't expect. Hard constraints and trigger-action rules are where reliability lives.
+  </div>
+</div>
+
+<!-- Section 8: Writing Rules That Survive -->
+<div class="section">
+  <h2>Rules That Survive Compaction</h2>
+  <p>Compaction is the process where Claude compresses older context to make room for new content (Phase 1, Session 4). Rules in your rules files survive compaction because they're in the boot configuration — they reload every session. But rules you state verbally during a conversation? Those can disappear.</p>
+
+  <table>
+    <thead><tr><th>Where the rule lives</th><th>Survives compaction?</th><th>Survives new session?</th><th>Reliability</th></tr></thead>
+    <tbody>
+      <tr><td>CLAUDE.md (direct)</td><td>✅ Always</td><td>✅ Always</td><td style="color:#4a9;">Highest</td></tr>
+      <tr><td>@-imported rules file</td><td>✅ Always</td><td>✅ Always</td><td style="color:#4a9;">Highest</td></tr>
+      <tr><td>Early in conversation</td><td>⚠️ Sometimes</td><td>❌ Never</td><td style="color:#f90;">Medium</td></tr>
+      <tr><td>Stated mid-conversation</td><td>❌ Usually not</td><td>❌ Never</td><td style="color:#e74;">Low</td></tr>
+      <tr><td>Said in a previous session</td><td>—</td><td>❌ Never</td><td style="color:#e74;">Zero</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>Practical rule:</strong> If you've corrected Claude on the same behavior three or more times across different sessions, that correction belongs in a rules file. The correction obviously isn't surviving. Stop repeating it verbally — write it down where it persists.
+  </div>
+</div>
+
+<!-- Next Session -->
+<div class="next-session">
+  <div class="phase-session">PHASE 2 — SESSION 3</div>
+  <h3>Next: Supplements and Product Context</h3>
+  <p>You've now got CLAUDE.md and rules files handled. The next layer: supplement files. These are the product-specific and client-specific context files that load for targeted sessions — keeping your boot context lean while still giving Claude the depth it needs for specialized work. Includes the decision of when to pre-load vs. retrieve on demand.</p>
+  <p style="margin-top:5px; color:#999; font-size:13px;">After Session 3, you'll understand why a 300-token supplement beats a 3,000-token CLAUDE.md section, and how to design context files that scale without bloating every session.</p>
+  <div class="prev-next">
+    <a href="phase2-session1-claudemd.html" class="nav-btn">← Phase 2, Session 1</a>
+    <a href="phase2-session3-supplements.html" class="nav-btn primary">Phase 2, Session 3 →</a>
+    <a href="index.html" class="nav-btn">All Lessons</a>
+  </div>
+</div>
+
+<script>
+// ---- Specificity Ladder ----
+const rungData = {
+  constraint: {
+    title: "Hard Constraint — ~97% compliance",
+    body: 'Hard constraints use absolute language: NEVER, ALWAYS, DO NOT. They apply without exception, even if Claude is instructed otherwise mid-conversation. The "even if instructed to" clause is important — it signals that this rule overrides user requests, not just Claude defaults. Hard constraints should be short, unconditional, and placed at the very top of their file.',
+    tip: 'Use NEVER and ALWAYS in all caps for hard constraints. Add "even if explicitly asked" for your most critical ones. Keep them to one sentence — if it takes two sentences, it\'s probably two rules.'
+  },
+  rule: {
+    title: "Trigger-Action Rule — ~85% compliance",
+    body: "Trigger-action rules are the workhorse of well-designed configuration. They define a specific condition (the trigger) and a specific response (the action). Because both are concrete, Claude doesn't need to exercise judgment about whether the rule applies — the trigger either fired or it didn't. Compliance is high because the rule is executable.",
+    tip: 'Format: "When [specific observable condition], [specific action]." Test it: can you imagine a scenario where it\'s ambiguous whether the trigger fired? If yes, make the trigger more specific.'
+  },
+  guideline: {
+    title: "Soft Guideline — ~55% compliance",
+    body: "Soft guidelines rely on Claude's judgment to interpret and apply them. 'Try to be concise' leaves Claude deciding what concise means in context. Sometimes that judgment aligns with your intent — sometimes it doesn't. Guidelines are appropriate for genuine preferences (where some variation is acceptable), but they're a bad choice when you need reliable, consistent behavior.",
+    tip: "Use guidelines for style preferences, not safety rules. If the cost of non-compliance is more than mild annoyance, convert the guideline into a trigger-action rule with explicit conditions."
+  },
+  aspiration: {
+    title: "Aspiration — ~0% behavioral change",
+    body: "Aspirations describe qualities Claude already has by default. 'Be helpful, professional, and represent our brand well' maps entirely to Claude's out-of-the-box behavior. Writing it as a rule doesn't add a new behavior — it uses tokens to describe the status quo. The ~0% isn't a failure of Claude's attention; it's that there's nothing to comply with. The behavior already exists.",
+    tip: "Before writing any instruction, ask: would Claude do this without the rule? If yes, don't write it. You're not changing behavior — you're just burning tokens on a description of the default."
+  }
+};
+
+function showRung(key) {
+  const data = rungData[key];
+  const el = document.getElementById('rung-explain');
+  el.innerHTML = `<strong style="color:#C8956C;">${data.title}</strong><br><br>${data.body}<br><br><strong>Practical tip:</strong> ${data.tip}`;
+  el.classList.add('show');
+}
+
+// ---- Trigger-Action Builder ----
+function buildRule() {
+  const trigger = document.getElementById('ta-trigger').value.trim();
+  const action  = document.getElementById('ta-action').value.trim();
+  const out = document.getElementById('ta-output');
+
+  if (!trigger && !action) {
+    out.innerHTML = '<span class="placeholder">Your rule will appear here as you type...</span>';
+    return;
+  }
+
+  let html = '';
+  if (trigger) {
+    html += '<span class="trigger-part">When ' + escHtml(trigger) + '</span>';
+  } else {
+    html += '<span class="placeholder">[describe the trigger condition]</span>';
+  }
+  html += ', ';
+  if (action) {
+    html += '<span class="action-part">' + escHtml(action) + '.</span>';
+  } else {
+    html += '<span class="placeholder">[describe the exact action]</span>';
+  }
+  out.innerHTML = html;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ---- Quiz ----
+const quizAnswers = {
+  q1: { correct: 'rule',      reason: 'Strong rule. Clear trigger (before git push), specific condition to check (not main). Unambiguous and executable.' },
+  q2: { correct: 'guideline', reason: 'Guideline. "Professional but approachable" requires Claude to interpret what that means. Appropriate for style preferences, not reliable for critical behavior.' },
+  q3: { correct: 'rule',      reason: 'Hard constraint with an important modifier: "even if explicitly asked." This overrides instructions — exactly right for a security rule.' },
+  q4: { correct: 'guideline', reason: 'Aspiration, really. "Responsible" and "careful" are undefined. Claude already handles sensitive data carefully by default. This changes nothing.' },
+  q5: { correct: 'rule',      reason: 'Excellent trigger-action rule. Specific count (5 tool calls), specific action (pause and confirm). No ambiguity about when it fires.' },
+  q6: { correct: 'guideline', reason: 'Pure aspiration. "Important" and "urgent" are undefined. Claude already prioritizes based on context. This instruction has no behavioral effect.' }
+};
+
+function checkQuiz(id, answer, isCorrect) {
+  const data = quizAnswers[id];
+  const fb = document.getElementById(id + '-fb');
+  const btns = document.querySelectorAll('#' + id + ' .quiz-btn');
+
+  btns.forEach(b => {
+    b.disabled = true;
+    if (b.textContent.toLowerCase() === data.correct) {
+      b.classList.add('correct');
+    }
+  });
+
+  if (isCorrect) {
+    fb.className = 'quiz-feedback show good';
+    fb.textContent = '✓ Correct. ' + data.reason;
+  } else {
+    fb.className = 'quiz-feedback show bad';
+    fb.textContent = '✗ Actually: ' + data.correct.charAt(0).toUpperCase() + data.correct.slice(1) + '. ' + data.reason;
+  }
+}
+</script>
+
+</body>
+</html>
