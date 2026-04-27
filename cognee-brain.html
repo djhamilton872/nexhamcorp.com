@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexHam Brain — Knowledge Graph</title>
+<script src="https://unpkg.com/force-graph@1.43.5/dist/force-graph.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0d0d14;
+    color: #e0e0e0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 52px;
+    background: rgba(13,13,20,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(200,149,108,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    z-index: 100;
+  }
+
+  #header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo-mark {
+    width: 28px;
+    height: 28px;
+    opacity: 0.9;
+  }
+
+  #title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #C8956C;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  #stats {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    font-size: 12px;
+    color: #888;
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .stat-value {
+    color: #C8956C;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #pulse {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #C8956C;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  #graph-container {
+    width: 100vw;
+    height: 100vh;
+  }
+
+  #experimental-badge {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255,80,80,0.12);
+    border: 1px solid rgba(255,80,80,0.3);
+    color: rgba(255,100,100,0.7);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 4px;
+    z-index: 100;
+  }
+
+  #last-updated {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    font-size: 11px;
+    color: #444;
+    z-index: 100;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #status-bar {
+    position: fixed;
+    top: 52px;
+    left: 0;
+    right: 0;
+    height: 28px;
+    background: rgba(13,13,20,0.7);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    font-size: 11px;
+    color: #555;
+    z-index: 99;
+    gap: 8px;
+  }
+
+  #status-text { color: #666; }
+
+  .node-tooltip {
+    position: absolute;
+    background: rgba(13,13,20,0.95);
+    border: 1px solid rgba(200,149,108,0.3);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 200;
+    max-width: 280px;
+    display: none;
+  }
+
+  .tooltip-name {
+    color: #C8956C;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .tooltip-type {
+    color: #666;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .tooltip-connections {
+    color: #888;
+    font-size: 11px;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div id="header-left">
+    <svg class="logo-mark" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="14" cy="14" r="2.5" fill="#C8956C"/>
+      <path d="M14 14 m-6 0 a6 6 0 1 1 0 0.001" stroke="#C8956C" stroke-width="1.2" fill="none" opacity="0.8"/>
+      <path d="M14 14 m-9 0 a9 9 0 1 1 0 0.001" stroke="#C8956C" stroke-width="0.8" fill="none" opacity="0.5"/>
+      <path d="M14 14 m-12 0 a12 12 0 1 1 0 0.001" stroke="#C8956C" stroke-width="0.5" fill="none" opacity="0.3"/>
+    </svg>
+    <span id="title">NexHam Brain</span>
+  </div>
+  <div id="stats">
+    <div class="stat">
+      <div id="pulse"></div>
+      <span id="status-label">connecting</span>
+    </div>
+    <div class="stat">
+      <span>Nodes</span>
+      <span class="stat-value" id="node-count">—</span>
+    </div>
+    <div class="stat">
+      <span>Links</span>
+      <span class="stat-value" id="link-count">—</span>
+    </div>
+    <div class="stat">
+      <span>Refresh</span>
+      <span class="stat-value">15s</span>
+    </div>
+  </div>
+</div>
+
+<div id="status-bar">
+  <span id="status-text">Initializing knowledge graph...</span>
+</div>
+
+<div id="graph-container"></div>
+
+<div id="experimental-badge">Experimental</div>
+<div id="last-updated" id="last-updated-ts"></div>
+
+<div class="node-tooltip" id="tooltip">
+  <div class="tooltip-name" id="tt-name"></div>
+  <div class="tooltip-type" id="tt-type"></div>
+  <div class="tooltip-connections" id="tt-connections"></div>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const COGNEE_BASE = 'https://cognee.nexhamcorp.com';
+const REFRESH_INTERVAL_MS = 15000;
+const AUTH = {
+  email: 'morgan@nexhamcorp.com',
+  password: '***REMOVED-LEAKED-CREDENTIAL-2026-04-26***'
+};
+const TARGET_DATASET = 'nexham-kb';
+
+// ─── COLOR PALETTE ────────────────────────────────────────────────────────────
+const COLORS = {
+  nodeDefault:    '#C8956C',
+  nodeHighlight:  '#e0b38c',
+  nodeDim:        '#5a4030',
+  linkDefault:    'rgba(200,149,108,0.15)',
+  linkHighlight:  'rgba(200,149,108,0.7)',
+  textDefault:    '#c8c8c8',
+  background:     '#0d0d14'
+};
+
+// Node type color overrides
+const TYPE_COLORS = {
+  'Entity':       '#C8956C',
+  'TextChunk':    '#7a9bbf',
+  'Document':     '#9b7abf',
+  'Concept':      '#7abf9b',
+  'Person':       '#bf9b7a',
+  'Organization': '#C8956C',
+  'default':      '#888'
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let token = null;
+let graph = null;
+let graphData = { nodes: [], links: [] };
+let highlightNodes = new Set();
+let highlightLinks = new Set();
+let hoverNode = null;
+
+// ─── MOCK DATA (shown while connecting or if API unavailable) ─────────────────
+const MOCK_DATA = {
+  nodes: [
+    { id: 'nexham',     label: 'NexHam',         type: 'Organization', val: 8 },
+    { id: 'trackmeplus',label: 'TrackMe+',        type: 'Entity',       val: 6 },
+    { id: 'antdigital', label: 'AntDigital KC',   type: 'Organization', val: 5 },
+    { id: 'darren',     label: 'Darren Hamilton', type: 'Person',       val: 7 },
+    { id: 'ios',        label: 'iOS App',          type: 'Entity',       val: 3 },
+    { id: 'macos',      label: 'macOS App',        type: 'Entity',       val: 3 },
+    { id: 'watch',      label: 'Apple Watch',      type: 'Entity',       val: 3 },
+    { id: 'etsy',       label: 'Etsy Store',       type: 'Entity',       val: 4 },
+    { id: 'pinterest',  label: 'Pinterest',        type: 'Entity',       val: 3 },
+    { id: 'groq',       label: 'Groq LLM',         type: 'Concept',      val: 4 },
+    { id: 'pgvector',   label: 'pgvector',         type: 'Concept',      val: 3 },
+    { id: 'hindsight',  label: 'Hindsight',        type: 'Concept',      val: 4 },
+    { id: 'cognee',     label: 'Cognee',           type: 'Concept',      val: 5 },
+    { id: 'kincaid',    label: 'Kincaid (Client)', type: 'Organization', val: 4 },
+    { id: 'helm',       label: 'Helm',             type: 'Concept',      val: 3 },
+  ],
+  links: [
+    { source: 'darren',     target: 'nexham',      label: 'FOUNDED' },
+    { source: 'nexham',     target: 'trackmeplus', label: 'BUILDS' },
+    { source: 'darren',     target: 'antdigital',  label: 'OWNS' },
+    { source: 'trackmeplus',target: 'ios',         label: 'RUNS_ON' },
+    { source: 'trackmeplus',target: 'macos',       label: 'RUNS_ON' },
+    { source: 'trackmeplus',target: 'watch',       label: 'RUNS_ON' },
+    { source: 'antdigital', target: 'etsy',        label: 'SELLS_VIA' },
+    { source: 'antdigital', target: 'pinterest',   label: 'PROMOTES_ON' },
+    { source: 'cognee',     target: 'groq',        label: 'USES_LLM' },
+    { source: 'cognee',     target: 'pgvector',    label: 'USES_VECTOR_DB' },
+    { source: 'nexham',     target: 'hindsight',   label: 'USES' },
+    { source: 'nexham',     target: 'cognee',      label: 'EXPERIMENTAL' },
+    { source: 'nexham',     target: 'kincaid',     label: 'SERVES' },
+    { source: 'nexham',     target: 'helm',        label: 'BUILDS' },
+  ]
+};
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+async function getToken() {
+  try {
+    const resp = await fetch(`${COGNEE_BASE}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `username=${encodeURIComponent(AUTH.email)}&password=${encodeURIComponent(AUTH.password)}`
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.access_token || null;
+  } catch(e) {
+    return null;
+  }
+}
+
+// ─── DATA FETCHING ────────────────────────────────────────────────────────────
+async function fetchGraphData() {
+  setStatus('Fetching graph data...');
+
+  if (!token) {
+    token = await getToken();
+  }
+
+  if (!token) {
+    setStatus('Auth unavailable — showing demo data', true);
+    return MOCK_DATA;
+  }
+
+  try {
+    // Use INSIGHTS search to get knowledge graph entities/relationships
+    const searchResp = await fetch(`${COGNEE_BASE}/api/v1/search/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ searchType: 'INSIGHTS', query: 'NexHam organization team infrastructure products' })
+    });
+
+    if (!searchResp.ok) {
+      setStatus('Search unavailable — showing demo data', true);
+      return MOCK_DATA;
+    }
+
+    const insights = await searchResp.json();
+
+    // Also fetch SUMMARIES for additional context nodes
+    const summaryResp = await fetch(`${COGNEE_BASE}/api/v1/search/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ searchType: 'SUMMARIES', query: 'NexHam' })
+    });
+    const summaries = summaryResp.ok ? await summaryResp.json() : [];
+
+    // Build graph from insights (triplets: subject → predicate → object)
+    const nodeMap = new Map();
+    const links = [];
+
+    const addNode = (id, label, type) => {
+      if (!nodeMap.has(id)) {
+        nodeMap.set(id, { id, label: label || id, type: type || 'Entity', val: 3 });
+      }
+    };
+
+    // Insights come back as array of triplet objects or strings
+    if (Array.isArray(insights)) {
+      insights.forEach((item, i) => {
+        if (typeof item === 'object' && item !== null) {
+          // Try triplet format: {subject, predicate, object} or {source, relationship, target}
+          const src = item.subject || item.source || item.from || String(i);
+          const tgt = item.object  || item.target || item.to   || null;
+          const rel = item.predicate || item.relationship || item.relation || 'RELATED';
+          const srcLabel = item.subject_name || item.source_name || src;
+          const tgtLabel = item.object_name  || item.target_name || tgt;
+
+          if (src && tgt) {
+            addNode(String(src), String(srcLabel), item.subject_type || item.source_type || 'Entity');
+            addNode(String(tgt), String(tgtLabel), item.object_type  || item.target_type || 'Entity');
+            links.push({ source: String(src), target: String(tgt), label: String(rel) });
+          } else if (item.name || item.label) {
+            addNode(String(i), item.name || item.label, item.type || 'Concept');
+          }
+        } else if (typeof item === 'string') {
+          addNode(String(i), item.substring(0, 40), 'Concept');
+        }
+      });
+    }
+
+    // Add summary nodes if we didn't get much from insights
+    if (nodeMap.size < 3 && Array.isArray(summaries)) {
+      summaries.forEach((s, i) => {
+        const label = typeof s === 'string' ? s.substring(0, 35) :
+                      (s.name || s.title || s.summary?.substring(0, 35) || `Doc ${i+1}`);
+        addNode(`doc-${i}`, label, 'Document');
+      });
+    }
+
+    const nodes = Array.from(nodeMap.values());
+
+    // Size nodes by connection count
+    const connCount = {};
+    links.forEach(l => {
+      connCount[l.source] = (connCount[l.source] || 0) + 1;
+      connCount[l.target] = (connCount[l.target] || 0) + 1;
+    });
+    nodes.forEach(n => { n.val = 2 + (connCount[n.id] || 0); });
+
+    if (nodes.length > 0) {
+      setStatus(`Live — ${nodes.length} nodes, ${links.length} links`);
+      return { nodes, links };
+    }
+
+    setStatus('Graph empty — cognify may still be processing', true);
+    return MOCK_DATA;
+
+  } catch(e) {
+    console.error('fetchGraphData error:', e);
+    setStatus('Connection error — showing demo data', true);
+    return MOCK_DATA;
+  }
+}
+
+// ─── STATUS ───────────────────────────────────────────────────────────────────
+function setStatus(msg, isDemoMode = false) {
+  const el = document.getElementById('status-text');
+  if (el) el.textContent = isDemoMode ? `⚠ ${msg}` : `● ${msg}`;
+
+  const label = document.getElementById('status-label');
+  if (label) {
+    label.textContent = isDemoMode ? 'demo mode' : 'live';
+    label.style.color = isDemoMode ? '#888' : '#C8956C';
+  }
+}
+
+// ─── GRAPH INIT ───────────────────────────────────────────────────────────────
+function initGraph(data) {
+  const container = document.getElementById('graph-container');
+  const tooltip = document.getElementById('tooltip');
+
+  graph = ForceGraph()(container)
+    .backgroundColor(COLORS.background)
+    .width(window.innerWidth)
+    .height(window.innerHeight)
+    .graphData(data)
+
+    // Nodes
+    .nodeVal(n => n.val || 3)
+    .nodeColor(n => {
+      if (highlightNodes.size > 0) {
+        return highlightNodes.has(n) ? (TYPE_COLORS[n.type] || COLORS.nodeDefault) : COLORS.nodeDim;
+      }
+      return TYPE_COLORS[n.type] || COLORS.nodeDefault;
+    })
+    .nodeLabel('')  // Disable default tooltip, we use custom
+    .nodeCanvasObject((node, ctx, globalScale) => {
+      const label = node.label || node.id;
+      const fontSize = Math.max(10, 12 / globalScale);
+      const r = Math.sqrt(node.val || 3) * 3.5;
+
+      // Glow for highlighted or hovered nodes
+      if (highlightNodes.has(node) || node === hoverNode) {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, r + 4, 0, 2 * Math.PI);
+        const grd = ctx.createRadialGradient(node.x, node.y, r, node.x, node.y, r + 6);
+        grd.addColorStop(0, 'rgba(200,149,108,0.4)');
+        grd.addColorStop(1, 'rgba(200,149,108,0)');
+        ctx.fillStyle = grd;
+        ctx.fill();
+      }
+
+      // Node circle
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+      const nodeColor = TYPE_COLORS[node.type] || COLORS.nodeDefault;
+      ctx.fillStyle = (highlightNodes.size > 0 && !highlightNodes.has(node))
+        ? COLORS.nodeDim
+        : nodeColor;
+      ctx.fill();
+
+      // Label (only at reasonable zoom)
+      if (globalScale >= 0.6) {
+        ctx.font = `${fontSize}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = (highlightNodes.size > 0 && !highlightNodes.has(node))
+          ? 'rgba(136,136,136,0.3)'
+          : COLORS.textDefault;
+        ctx.fillText(label.length > 20 ? label.substring(0,18)+'…' : label, node.x, node.y + r + 2);
+      }
+    })
+    .nodeCanvasObjectMode(() => 'replace')
+
+    // Links
+    .linkColor(l => highlightLinks.has(l) ? COLORS.linkHighlight : COLORS.linkDefault)
+    .linkWidth(l => highlightLinks.has(l) ? 1.5 : 0.8)
+    .linkDirectionalArrowLength(l => highlightLinks.has(l) ? 4 : 0)
+    .linkDirectionalArrowRelPos(1)
+    .linkCurvature(0.1)
+    .linkLabel(l => l.label || '')
+    .linkCanvasObjectMode(() => 'after')
+    .linkCanvasObject((link, ctx, globalScale) => {
+      if (globalScale < 1.2) return; // don't render link labels when zoomed out
+      if (!highlightLinks.has(link)) return;
+      const label = link.label;
+      if (!label) return;
+
+      const start = link.source;
+      const end = link.target;
+      if (!start || !end || typeof start !== 'object') return;
+
+      const mx = (start.x + end.x) / 2;
+      const my = (start.y + end.y) / 2;
+      const fontSize = 8 / globalScale;
+
+      ctx.font = `${fontSize}px Inter, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(200,149,108,0.8)';
+      ctx.fillText(label, mx, my);
+    })
+
+    // Hover interactions
+    .onNodeHover(node => {
+      hoverNode = node || null;
+      highlightNodes.clear();
+      highlightLinks.clear();
+
+      if (node) {
+        highlightNodes.add(node);
+        (graph.graphData().links || []).forEach(link => {
+          if (link.source === node || link.target === node) {
+            highlightLinks.add(link);
+            highlightNodes.add(link.source);
+            highlightNodes.add(link.target);
+          }
+        });
+
+        // Show tooltip
+        const connectionCount = highlightNodes.size - 1;
+        document.getElementById('tt-name').textContent = node.label || node.id;
+        document.getElementById('tt-type').textContent = node.type || 'Entity';
+        document.getElementById('tt-connections').textContent = `${connectionCount} connection${connectionCount !== 1 ? 's' : ''}`;
+        tooltip.style.display = 'block';
+      } else {
+        tooltip.style.display = 'none';
+      }
+
+      container.style.cursor = node ? 'pointer' : 'default';
+      graph.nodeColor(graph.nodeColor());
+    })
+    .onNodeClick(node => {
+      graph.centerAt(node.x, node.y, 600);
+      graph.zoom(2.5, 600);
+    })
+
+    // Physics
+    .d3AlphaDecay(0.02)
+    .d3VelocityDecay(0.3)
+    .cooldownTime(4000);
+
+  // Move tooltip with mouse
+  container.addEventListener('mousemove', e => {
+    if (tooltip.style.display === 'block') {
+      tooltip.style.left = (e.clientX + 16) + 'px';
+      tooltip.style.top  = (e.clientY + 16) + 'px';
+    }
+  });
+
+  // Resize handler
+  window.addEventListener('resize', () => {
+    graph.width(window.innerWidth).height(window.innerHeight);
+  });
+
+  updateStats(data);
+}
+
+// ─── UPDATE ───────────────────────────────────────────────────────────────────
+function updateStats(data) {
+  document.getElementById('node-count').textContent = data.nodes.length;
+  document.getElementById('link-count').textContent = data.links.length;
+
+  const ts = document.getElementById('last-updated');
+  if (ts) {
+    const now = new Date();
+    ts.textContent = `Last updated: ${now.toLocaleTimeString()}`;
+  }
+}
+
+async function refresh() {
+  const data = await fetchGraphData();
+  if (graph) {
+    graph.graphData(data);
+    updateStats(data);
+  }
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+(async () => {
+  // Show mock data immediately so there's something to look at
+  const initialData = MOCK_DATA;
+  initGraph(initialData);
+  setStatus('Demo data loaded — connecting to Cognee...', true);
+
+  // Try to load real data
+  const realData = await fetchGraphData();
+  graph.graphData(realData);
+  updateStats(realData);
+
+  // Poll for updates
+  setInterval(refresh, REFRESH_INTERVAL_MS);
+})();
+</script>
+
+</body>
+</html>
