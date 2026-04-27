@@ -220,7 +220,7 @@ const COGNEE_BASE = 'https://cognee.nexhamcorp.com';
 const REFRESH_INTERVAL_MS = 15000;
 const AUTH = {
   email: 'morgan@nexhamcorp.com',
-  password: '***REMOVED-LEAKED-CREDENTIAL-2026-04-26***'
+  password: null  // entered at runtime via prompt
 };
 const TARGET_DATASET = 'nexham-kb';
 
@@ -294,13 +294,16 @@ const MOCK_DATA = {
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 async function getToken() {
   try {
+    const pw = AUTH.password || prompt('NexHam Brain — enter access password:');
+    if (!pw) return null;
     const resp = await fetch(`${COGNEE_BASE}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `username=${encodeURIComponent(AUTH.email)}&password=${encodeURIComponent(AUTH.password)}`
+      body: `username=${encodeURIComponent(AUTH.email)}&password=${encodeURIComponent(pw)}`
     });
     if (!resp.ok) return null;
     const data = await resp.json();
+    if (data.access_token) AUTH.password = pw; // cache for refresh cycles
     return data.access_token || null;
   } catch(e) {
     return null;
