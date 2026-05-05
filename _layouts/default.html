@@ -12,6 +12,30 @@
   <link rel="icon" href="{{ '/favicon.svg' | relative_url }}" type="image/svg+xml">
   {% feed_meta %}
   {% seo %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "NexHam LLC",
+    "url": "https://nexhamcorp.com",
+    "logo": "https://nexhamcorp.com/assets/images/nexham-og.png",
+    "description": "NexHam builds production software and deploys AI-powered teams for businesses.",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Kansas City",
+      "addressRegion": "MO",
+      "addressCountry": "US"
+    },
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "email": "hello@nexhamcorp.com",
+      "contactType": "customer service"
+    },
+    "sameAs": [
+      "https://store.nexhamcorp.com"
+    ]
+  }
+  </script>
   <!-- Cloudflare Web Analytics -->
   <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "03850f3fca584649b66e49a17ebc6a2e"}'></script>
 </head>

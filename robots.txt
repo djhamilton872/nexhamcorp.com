@@ -1,3 +1,39 @@
+# nexhamcorp.com robots.txt
+# Content-Signal Declarations
+
+# AI Citation Bots — ALLOWED (can crawl and cite our content)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# AI Training Crawlers — BLOCKED (no bulk training use)
+User-agent: CCBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Meta-ExternalAgent
+Disallow: /
+
+User-agent: AmazonBot
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+# All other bots — ALLOWED
 User-agent: *
 Allow: /
 
