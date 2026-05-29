@@ -48,8 +48,8 @@ description: "NexHam builds production software and deploys AI-powered teams for
     </div>
     <div class="proof-content">
       <div class="proof-text">
-        <p>Our flagship product, <a href="https://trackmeplus.com">TrackMe+</a>, is a medication and health tracking app available on web, iOS, macOS, and Apple Watch. It was built entirely by a coordinated AI team under human leadership using the same model we deploy for clients.</p>
-        <p>It's not a weekend hack or a landing page with a waitlist. It's a production SaaS with real users, real infrastructure, and real code reviews. When we say the model works, we're not asking you to take our word for it.</p>
+        <p>NexHam runs on the same model we deploy for clients. Seven specialized AI sessions coordinate daily across consulting, marketing, development, and operations — each with defined roles, persistent memory, and real deliverables shipping every week.</p>
+        <p>It's not a demo or a proof of concept. It's a live business running 24/7 on the exact architecture we build for clients. When we say the model works, we're showing you, not telling you.</p>
       </div>
       <div class="proof-stats">
         <div class="stat">
@@ -57,7 +57,7 @@ description: "NexHam builds production software and deploys AI-powered teams for
           <span class="stat-label">Platforms</span>
         </div>
         <div class="stat">
-          <span class="stat-number">3</span>
+          <span class="stat-number">7</span>
           <span class="stat-label">AI Sessions</span>
         </div>
         <div class="stat">
