@@ -9,8 +9,8 @@ description: "NexHam builds production software and deploys AI-powered teams for
     <h1>Software that works.<br><span class="accent">AI that delivers.</span></h1>
     <p>NexHam builds production software and deploys AI teams that actually run your operations. Not demos. Not prototypes. Real systems, shipping real results, under real human leadership.</p>
     <div class="hero-cta">
-      <a href="#services" class="btn btn-primary">See What We Build</a>
-      <a href="#about" class="btn btn-outline">Our Story</a>
+      <a href="#contact" class="btn btn-primary">Book a Session</a>
+      <a href="https://www.youtube.com/@NexHamCorp" class="btn btn-outline" target="_blank" rel="noopener noreferrer">See the Work</a>
     </div>
   </div>
 </section>
@@ -25,7 +25,7 @@ description: "NexHam builds production software and deploys AI-powered teams for
       <div class="service-card">
         <div class="service-icon">01</div>
         <h3>AI Team Deployment</h3>
-        <p>We deploy coordinated, multi-agent AI teams with defined roles, daily status reports, and CEO-level dashboards. They manage their own work, communicate across sessions, and deliver measurable output. Think less "chatbot" and more "department that never clocks out."</p>
+        <p>We deploy AI that handles the coordination, admin, and operational work your team doesn't have time for — writing, scheduling, follow-up, content, reporting — running continuously so your people can focus on what moves the business. Think less "chatbot" and more "department that never clocks out."</p>
       </div>
       <div class="service-card">
         <div class="service-icon">02</div>
@@ -38,6 +38,16 @@ description: "NexHam builds production software and deploys AI-powered teams for
         <p>Docker, CI/CD pipelines, monitoring, and cloud architecture designed to be strong and stable. Systems that survive contact with real users, real traffic, and real problems without falling over.</p>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="audience" id="audience">
+  <div class="container">
+    <div class="section-header">
+      <h2>Built for teams of 5 to 20.</h2>
+    </div>
+    <p>NexHam works best with small businesses that are growing fast enough that manual coordination is starting to slip, but not large enough to hire for it. If you have real clients, real work, and your team is spending too much time on things that should run themselves — that's the conversation worth having.</p>
+    <p><strong>Not the right fit:</strong> If you have a dedicated IT team or you're evaluating enterprise platforms, NexHam isn't the right call. We work with owners and operators, not procurement committees.</p>
   </div>
 </section>
 
@@ -99,7 +109,7 @@ description: "NexHam builds production software and deploys AI-powered teams for
       <h2>Built Different</h2>
     </div>
     <p>NexHam is a software and AI consulting firm based in Kansas City, founded by Darren Hamilton. After 25 years leading IT teams in healthcare technology, Darren saw what most AI consultants get wrong: they sell the technology without the discipline to make it actually work in a real business.</p>
-    <p>NexHam's approach starts with team structure, accountability, and process. The AI teams follow defined operating standards, track their own work, communicate across sessions, and give leadership a real-time dashboard of what's happening. The result looks less like "we installed an AI tool" and more like "we hired a team that never sleeps."</p>
+    <p>NexHam's approach starts with team structure, accountability, and process. The AI teams follow defined operating standards, track their own work, communicate across sessions, and give leadership a real-time dashboard of what's happening. The result looks less like "we installed an AI tool" and more like "we hired a team that never sleeps." If you want to see the system before booking a call, the AI Deployed course documents the exact architecture — <a href="https://store.nexhamcorp.com">store.nexhamcorp.com →</a></p>
   </div>
 </section>
 
@@ -107,8 +117,10 @@ description: "NexHam builds production software and deploys AI-powered teams for
   <div class="container">
     <div class="section-header">
       <h2>Let's Talk</h2>
-      <p>Have a project in mind? Let's figure out if we're a good fit.</p>
+      <p>No pitch. Just an honest 30-minute call to figure out whether AI is the right move for your team right now.</p>
     </div>
+    <a href="mailto:hello@nexhamcorp.com" class="btn btn-primary" style="display:inline-block;margin-bottom:16px;">Book a Session</a>
+    <br>
     <a href="mailto:hello@nexhamcorp.com" class="email-link">hello@nexhamcorp.com</a>
   </div>
 </section>
