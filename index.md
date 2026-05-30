@@ -51,6 +51,26 @@ description: "NexHam builds production software and deploys AI-powered teams for
   </div>
 </section>
 
+<section class="pricing" id="pricing">
+  <div class="container">
+    <div class="section-header">
+      <h2>Start simple. Scale when you are ready.</h2>
+    </div>
+    <div class="services-grid">
+      <div class="service-card">
+        <div class="service-icon">01</div>
+        <h3>CoWork Install</h3>
+        <p>Claude Desktop configured for your team — MCPs wired to your tools, startup instructions tuned for your workflows, and a personalized dashboard deployed and gated. Done remotely in a 2-hour session. /seat.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">02</div>
+        <h3>Team Claude Deployment</h3>
+        <p>What NexHam itself runs on. Multiple AI sessions with specialized roles, persistent memory, cross-session coordination, and real deliverables shipping every week. Custom scope — contact us to discuss.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="proof" id="proof">
   <div class="container">
     <div class="section-header">
